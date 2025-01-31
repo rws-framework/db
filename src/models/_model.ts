@@ -33,6 +33,7 @@ export interface OpModelType<ChildClass> {
     _collection: string;
     _RELATIONS: {[key: string]: boolean}
     _CUT_KEYS: string[]
+    allModels: OpModelType<any>[];
     loadModels: () => OpModelType<any>[];
     checkForInclusionWithThrow: (className: string) => void;
     checkForInclusion: (className: string) => boolean;
@@ -65,7 +66,7 @@ class RWSModel<ChildClass> implements IModel{
     static services: IRWSModelServices = {}
 
     static configService: IDbConfigHandler;
-    static dbService: DBService
+    static dbService: DBService    
 
     [key: string]: any;
     @TrackType(String)
@@ -73,7 +74,7 @@ class RWSModel<ChildClass> implements IModel{
     static _collection: string = null;
     static _RELATIONS = {};
     static _BANNED_KEYS = ['_collection'];
-
+    static allModels: OpModelType<any>[] = [];
     static _CUT_KEYS: string[] = [];
 
     constructor(data: any) {    
@@ -407,7 +408,7 @@ class RWSModel<ChildClass> implements IModel{
         } else {
             this.preCreate();      
       
-            const timeSeriesModel = await import('../types/TimeSeriesModel');      
+            const timeSeriesModel = await import('./TimeSeriesModel');      
             const isTimeSeries = this instanceof timeSeriesModel.default;
 
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);      
@@ -655,12 +656,12 @@ class RWSModel<ChildClass> implements IModel{
     }
 
     static loadModels(): OpModelType<any>[]
-    {        
-        return this.configService.get('db_models');
+    {                        
+        return RWSModel.allModels;
     }
 
     loadModels(): OpModelType<any>[]
-    {     
+    {             
         return RWSModel.loadModels();
     }
 
@@ -669,7 +670,7 @@ class RWSModel<ChildClass> implements IModel{
         return Object.keys((this as any).constructor._RELATIONS).includes(key) && (this as any).constructor._RELATIONS[key] === true
     }
 
-    public static setServices(services: IRWSModelServices){
+    public static setServices(services: IRWSModelServices){        
         RWSModel.services = {...RWSModel.services, ...services};
     }
 }
