@@ -4,6 +4,8 @@ import { InverseRelation, Relation, TrackType, InverseTimeSeries, IMetaOpts } fr
 import type  { FindByType } from './types/FindParams';
 import type  { ITimeSeries } from './types/ITimeSeries';
 import type TimeSeriesModel from './types/TimeSeriesModel';
+import type { IDbConfigHandler } from './types/DbConfigHandler';
+
 export {       
    OpModelType,
    RWSModel,
@@ -14,5 +16,7 @@ export {
    TimeSeriesModel,
    ITimeSeries,
    
+   IDbConfigHandler,
+
    InverseRelation, Relation, TrackType, InverseTimeSeries
 };

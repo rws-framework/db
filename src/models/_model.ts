@@ -1,4 +1,3 @@
-import { Error500, RWSError } from '@rws-framework/server/src/errors';
 import {DBService} from '../services/DBService';
 import { IRWSModel } from '../types/IRWSModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
@@ -12,12 +11,12 @@ interface IModel{
     id: string | null;
     save: () => void;
     getCollection: () => string | null;
-    configService?: DbConfigHandler;
+    configService?: IDbConfigHandler;
     dbService?: DBService;
 }
 
 interface IRWSModelServices {
-    configService?: DbConfigHandler
+    configService?: IDbConfigHandler
     dbService?: DBService
 }
 
@@ -25,8 +24,8 @@ type RelationBindType = {
     connect: { id: string }
 };
 
-type RelOneMetaType<T extends RWSModel<T>> = {[key: string]: {required: boolean, key?: string, model: OpModelType<T>, hydrationField: string, foreignKey: string}};
-type RelManyMetaType<T extends RWSModel<T>> = {[key: string]: {key: string, inversionModel: OpModelType<T>, foreignKey: string}};
+type RelOneMetaType<T extends IRWSModel> = {[key: string]: {required: boolean, key?: string, model: OpModelType<T>, hydrationField: string, foreignKey: string}};
+type RelManyMetaType<T extends IRWSModel> = {[key: string]: {key: string, inversionModel: OpModelType<T>, foreignKey: string}};
 
 export interface OpModelType<ChildClass> {
     new(data?: any | null): ChildClass;
@@ -34,37 +33,38 @@ export interface OpModelType<ChildClass> {
     _collection: string;
     _RELATIONS: {[key: string]: boolean}
     _CUT_KEYS: string[]
-    loadModels: () => RWSModel<any>[];
+    loadModels: () => OpModelType<any>[];
     checkForInclusionWithThrow: (className: string) => void;
     checkForInclusion: (className: string) => boolean;
-    configService?: RWSConfigService;
+    configService?: IDbConfigHandler;
     dbService?: DBService;
-    findOneBy<T extends RWSRWSModel<T>>(
+    findOneBy<T extends RWSModel<T>>(
         this: OpModelType<T>,
         findParams: FindByType
     ): Promise<T | null>;
-    find<T extends RWSRWSModel<T>>(
+    find<T extends RWSModel<T>>(
         this: OpModelType<T>,
         id: string,        
         findParams?: Omit<FindByType, 'conditions'>
     ): Promise<T | null>;
-    findBy<T extends RWSRWSModel<T>>(
+    findBy<T extends RWSModel<T>>(
         this: OpModelType<T>,    
         findParams: FindByType
     ): Promise<T[]>;
-    delete<ChildClass extends RWSRWSModel<ChildClass>>(
+    delete<ChildClass extends RWSModel<ChildClass>>(
         this: OpModelType<ChildClass>,
         conditions: any
     ): Promise<void>
-    create<T extends RWSRWSModel<T>>(this: OpModelType<T>, data: T): Promise<T>;
-    getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<RWSModel<any>>>;
-    getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<RWSModel<any>>>;
+    create<T extends RWSModel<T>>(this: OpModelType<T>, data: T): Promise<T>;
+    getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
+    getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
+    getCollection(): string;
 }
 
-class RWSRWSModel<ChildClass> implements IModel{
+class RWSModel<ChildClass> implements IModel{
     static services: IRWSModelServices = {}
 
-    static configService: RWSConfigService;
+    static configService: IDbConfigHandler;
     static dbService: DBService
 
     [key: string]: any;
@@ -104,7 +104,7 @@ class RWSRWSModel<ChildClass> implements IModel{
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void
     {
         if(!this.checkForInclusion(this.name)){
-            throw new Error500(new Error('Model undefined: ' + this.name), this.name);
+            throw new Error('Model undefined: ' + this.name);
         }
     }
 
@@ -115,7 +115,7 @@ class RWSRWSModel<ChildClass> implements IModel{
 
     static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean
     {        
-        return this.loadModels().find((definedModel: RWSModel<any>) => {
+        return this.loadModels().find((definedModel: OpModelType<any>) => {
             return definedModel.name === checkModelType
         }) !== undefined
     }
@@ -208,7 +208,7 @@ class RWSRWSModel<ChildClass> implements IModel{
                     this[relMeta.key] = await relMeta.model.find(data[relMeta.hydrationField], { allowRelations: false });    
                 }                                
                 else if(relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]){                    
-                    const newRelModel: RWSRWSModel<any> = await relMeta.model.create(data[relMeta.key]);                    
+                    const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);                    
                     this[relMeta.key] = await newRelModel.save();
                 }
 
@@ -619,7 +619,7 @@ class RWSRWSModel<ChildClass> implements IModel{
             }
         
             return [];
-        } catch (rwsError: RWSError | any) {
+        } catch (rwsError: Error | any) {
             console.error(rwsError);
 
             throw rwsError;
@@ -654,12 +654,12 @@ class RWSRWSModel<ChildClass> implements IModel{
         return newModel;
     }
 
-    static loadModels(): RWSModel<any>[]
+    static loadModels(): OpModelType<any>[]
     {        
         return this.configService.get('db_models');
     }
 
-    loadModels(): RWSModel<any>[]
+    loadModels(): OpModelType<any>[]
     {     
         return RWSModel.loadModels();
     }
