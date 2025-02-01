@@ -1,8 +1,9 @@
 {
-  "compilerOptions": {
-    "baseUrl": "./",
+  "compilerOptions": {  
+    "baseUrl": "./",  
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "emitDeclarationOnly": false,
     "target": "ES2018",
     "module": "commonjs",
     "moduleResolution": "node",
@@ -14,9 +15,16 @@
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
     "declaration": true, 
+    "outDir": "build/vendors",
+    "preserveWatchOutput": true,
+    "allowJs": true,
+    "paths": {
+      "@V/*": ["./build/vendors/*"]      
+    }
   },
   "include": [
-    "src"
+    "src/cli.ts",
+    "../src/*"    
   ],
   "exclude": [  
     "node_modules"  

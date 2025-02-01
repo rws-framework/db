@@ -77,12 +77,11 @@ export default User;
 
 ***Basic many to one relation***
 ```typescript
-import { RWSannotations, RWSModel } from '@rws-framework/server';
+import { RWSModel, TrackType, Relation } from '@rws-framework/db';
 
 import 'reflect-metadata';
 import User from './User';
 import IApiKey from './interfaces/IApiKey';
-const { RWSTrackType, Relation } = RWSannotations.modelAnnotations;
 
 class ApiKey extends RWSModel<ApiKey> implements IApiKey {
     static _RELATIONS = {
@@ -92,13 +91,13 @@ class ApiKey extends RWSModel<ApiKey> implements IApiKey {
     @Relation(() => User, true) // second attribute is required = false
     user: User;
 
-    @RWSTrackType(Object)
+    @TrackType(Object)
     keyval: string;
 
-    @RWSTrackType(Date, { required: true })
+    @TrackType(Date, { required: true })
     created_at: Date;
   
-    @RWSTrackType(Date)
+    @TrackType(Date)
     updated_at: Date;
 
     static _collection = 'api_keys';
@@ -121,7 +120,8 @@ export default ApiKey;
 
 ```typescript
 import 'reflect-metadata';
-import Model, { OpModelType } from '../_model';
+
+import { RWSModel, OpModelType } from '@rws-framework/db';
 
 interface IRelationOpts {
     required?: boolean
@@ -131,7 +131,7 @@ interface IRelationOpts {
     relatedTo: OpModelType<Model<any>>
 }
   
-function Relation(theModel: () => OpModelType<Model<any>>, required: boolean = false, relationField: string = null, relatedToField: string = 'id') {
+function Relation(theModel: () => OpModelType<RWSModel<any>>, required: boolean = false, relationField: string = null, relatedToField: string = 'id') {
     return function(target: any, key: string) {     
         // Store the promise in metadata immediately
         const metadataPromise = Promise.resolve().then(() => {
@@ -162,15 +162,15 @@ export {IRelationOpts};
 ***Inverse relation decorator*** (one-to-many)
 ```typescript
 import 'reflect-metadata';
-import Model, { OpModelType } from '../_model';
+import { RWSModel, OpModelType } from '@rws-framework/db';
 
 interface InverseRelationOpts{
     key: string,
-    inversionModel: OpModelType<Model<any>>,
+    inversionModel: OpModelType<RWSModel<any>>,
     foreignKey: string    
   }
 
-  function InverseRelation(inversionModel: () => OpModelType<Model<any>>, sourceModel: () => OpModelType<Model<any>>, foreignKey: string = null) {    
+  function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, foreignKey: string = null) {    
     return function(target: any, key: string) {     
         // Store the promise in metadata immediately
         const metadataPromise = Promise.resolve().then(() => {
@@ -201,14 +201,116 @@ export {InverseRelationOpts};
 
 ## RWS Model to prisma conversion
 
+### Init helper class
 
-### Init CLI
-Basic CLI command that executes **generateModelSections()** from conversion script is 
+**This needs to be run either from the package or CLI - it changes models to prisma schema and registers it.**
 
-```bash
-yarn rws init
+*IDbConfigHandler* - An interface for config bag for DBService
+
+```typescript
+    import { OpModelType } from "../models/_model";
+
+    export interface IDbConfigParams {
+        mongo_url?: string;
+        mongo_db?: string;
+        db_models?: OpModelType<any>[]
+    }
+
+    export interface IDbConfigHandler {
+        get<K extends keyof IDbConfigParams>(key: K): IDbConfigParams[K];
+    }
 ```
 
+**Helper prisma install example**
+
+```typescript
+class Config implements IDbConfigHandler {
+    private data: IDbConfigParams = {
+        db_models: [],
+        mongo_db: null,
+        mongo_url: null
+    };
+
+    private modelsDir: string;
+    private cliExecRoot: string;
+    private static _instance: Config = null;
+
+    private constructor(){}
+
+    static async getInstance(): Promise<Config>
+    {
+        if(!this._instance){
+        this._instance = new Config();
+        }    
+
+        await this._instance.fill();
+
+        return this._instance;
+    }
+
+    
+    async fill(): Promise<void>
+    {
+        this.data.mongo_url = args[0];
+        this.data.mongo_db = args[1];    
+        
+
+        this.modelsDir = args[2];    
+        this.cliExecRoot = args[3]; 
+
+        this.data.db_models = (await import('@V/index')).default;      
+    }
+
+    getModelsDir(): string
+    {
+        return this.modelsDir
+    }
+
+    getCliExecRoot(): string
+    {
+        return this.cliExecRoot
+    }
+
+    get<K extends keyof IDbConfigParams>(key: K): IDbConfigParams[K] {
+        return this.data[key];  
+    }
+    }
+
+    async function main(): Promise<void>
+    {
+        console.log('INSTALL PRISMA');
+        const cfg = await Config.getInstance();
+        DbHelper.installPrisma(cfg, new DBService(cfg), false);
+    }
+```
+
+### Init CLI
+Basic CLI command that executes **generateModelSections()** from conversion script is:
+
+**rws-db [DB_URL] [DB_NAME] [MODELS_DIRECTORY]**
+
+The exec file.
+```
+/exec/src/console.js
+```
+
+```bash
+#npm
+
+npx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName src/models
+```
+
+```bash
+#yarn
+
+yarn rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName src/models
+```
+
+```bash
+#bun
+
+bunx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName src/models
+```
 
 Code for RWS to prisma conversion from "@rws-framework/server" package:
 

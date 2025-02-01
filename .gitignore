@@ -3,8 +3,12 @@ exec/dist/
 exec/build/
 exec/vendors/
 exec/node_modules
+exec/.tmp.gitignore.json
 
 !lambda-functions/efs_loader/node_modules
+
+#prisma tmp dir
+prisma
 
 # amplify
 .amplify

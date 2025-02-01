@@ -60,7 +60,7 @@ export class DbHelper {
 
             if(fs.existsSync(schemaPath)){
                 fs.unlinkSync(schemaPath);
-            }
+            }            
 
             fs.writeFileSync(schemaPath, template);  
             process.env.DB_URL = dbUrl;
