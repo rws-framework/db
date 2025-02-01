@@ -41,7 +41,9 @@ class Config implements IDbConfigHandler {
     this.modelsDir = args[2];    
     this.cliExecRoot = args[3]; 
 
-    this.data.db_models = (await import('@V/index')).default;      
+    console.log({args})
+
+    // this.data.db_models = (await import('@V/index')).default;      
   }
 
   getModelsDir(): string

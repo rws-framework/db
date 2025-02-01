@@ -15,6 +15,9 @@ const getCachedPath = (key) => path.resolve(rwsCliConfigDir, key);
 
 const currentCwd = path.resolve(__dirname);
 
+console.log({params})
+
+
 const commandString = `npx webpack --config db.rws.webpack.config.js --output-path ./build ${process.cwd()} ${params[2]}`;
 function needsCacheWarming(){
 
@@ -62,28 +65,17 @@ async function main()
             }
         }
 
+        await tsc();
+
         await rwsShell.runCommand(commandString, currentCwd);      
-        const tempConfigContent = {
-            "extends": "./tsconfig.json",
-            "include": [
-                path.join(process.cwd(), params[2], 'index.ts')
-            ],           
-        };
-                
-        const tempConfigPath = path.join(currentCwd, '.tmp.gitignore.json');
-        fs.writeFileSync(tempConfigPath, JSON.stringify(tempConfigContent, null, 2));
+       
         
-        
-        await rwsShell.runCommand(`tsc -p ${tempConfigPath}`, currentCwd);                
-        fs.unlinkSync(tempConfigPath);        
     }else{
         console.log(chalk.blue('[RWS CLI CACHE] Starting command from built CLI client.'));
     }    
 
     let startSlice = hasRebuild ? -1 : paramsString.split(' ').length;
     let endSlice = hasRebuild ? -1 : null ;
-
-    console.log({startSlice, endSlice}, paramsString.split(' ').slice(0, startSlice))
 
     paramsString = [
         ...paramsString.split(' ').slice(0, startSlice), 
@@ -96,6 +88,21 @@ async function main()
     await rwsShell.runCommand(`node ${path.join(currentCwd, 'build', 'main.cli.rws.js')}${paramsString}`, process.cwd());
 }
 
+async function tsc (){
+    const tempConfigContent = {
+        "extends": "./tsconfig.json",
+        "include": [
+            path.join(process.cwd(), params[2], 'index.ts')
+        ],           
+    };
+            
+    const tempConfigPath = path.join(currentCwd, '.tmp.gitignore.json');
+    fs.writeFileSync(tempConfigPath, JSON.stringify(tempConfigContent, null, 2));
+    
+    
+    await rwsShell.runCommand(`tsc -p ${tempConfigPath}`, currentCwd);                
+    fs.unlinkSync(tempConfigPath);        
+}
 
 main().then((data) => {
     console.log(chalk.green('[RWS DB CLI] Command complete.'));
