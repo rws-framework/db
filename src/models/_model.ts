@@ -29,6 +29,7 @@ type RelManyMetaType<T extends IRWSModel> = {[key: string]: {key: string, invers
 
 export interface OpModelType<ChildClass> {
     new(data?: any | null): ChildClass;
+    services: IRWSModelServices;
     name: string 
     _collection: string;
     _RELATIONS: {[key: string]: boolean}
@@ -37,8 +38,6 @@ export interface OpModelType<ChildClass> {
     loadModels: () => OpModelType<any>[];
     checkForInclusionWithThrow: (className: string) => void;
     checkForInclusion: (className: string) => boolean;
-    configService?: IDbConfigHandler;
-    dbService?: DBService;
     findOneBy<T extends RWSModel<T>>(
         this: OpModelType<T>,
         findParams: FindByType
@@ -60,14 +59,12 @@ export interface OpModelType<ChildClass> {
     getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
     getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
     getCollection(): string;
+    setServices(services: IRWSModelServices): void;
 }
 
 class RWSModel<ChildClass> implements IModel{
-    static services: IRWSModelServices = {}
-
-    static configService: IDbConfigHandler;
-    static dbService: DBService    
-
+    static services: IRWSModelServices = {};
+    
     [key: string]: any;
     @TrackType(String)
     id: string;
@@ -83,8 +80,8 @@ class RWSModel<ChildClass> implements IModel{
         
         }
 
-        this.dbService = RWSModel.dbService;
-        this.configService = RWSModel.configService;
+        this.dbService = RWSModel.services.dbService;
+        this.configService = RWSModel.services.configService;
 
         if(!data){
             return;    
@@ -99,7 +96,7 @@ class RWSModel<ChildClass> implements IModel{
     
     checkForInclusionWithThrow(): void
     {
-        this.checkForInclusionWithThrow()
+        this.checkForInclusionWithThrow();
     }
 
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void
@@ -117,8 +114,8 @@ class RWSModel<ChildClass> implements IModel{
     static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean
     {        
         return this.loadModels().find((definedModel: OpModelType<any>) => {
-            return definedModel.name === checkModelType
-        }) !== undefined
+            return definedModel.name === checkModelType;
+        }) !== undefined;
     }
 
     protected _fill(data: any): RWSModel<ChildClass>{
@@ -543,7 +540,7 @@ class RWSModel<ChildClass> implements IModel{
     ){
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
-        return await this.dbService.watchCollection(collection, preRun);
+        return await this.services.dbService.watchCollection(collection, preRun);
     }
 
     public static async findOneBy<ChildClass extends RWSModel<ChildClass>>(
@@ -560,7 +557,7 @@ class RWSModel<ChildClass> implements IModel{
 
         
         const collection = Reflect.get(this, '_collection');        
-        const dbData = await this.dbService.findOneBy(collection, conditions, fields, ordering, allowRelations);
+        const dbData = await this.services.dbService.findOneBy(collection, conditions, fields, ordering, allowRelations);
         
     
         if (dbData) {
@@ -584,7 +581,7 @@ class RWSModel<ChildClass> implements IModel{
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
 
-        const dbData = await this.dbService.findOneBy(collection, { id }, fields, ordering, allowRelations);
+        const dbData = await this.services.dbService.findOneBy(collection, { id }, fields, ordering, allowRelations);
     
         if (dbData) {            
             const inst: ChildClass = new (this as { new(): ChildClass })();
@@ -607,7 +604,7 @@ class RWSModel<ChildClass> implements IModel{
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
         try {
-            const dbData = await this.dbService.findBy(collection, conditions, fields, ordering, allowRelations);   
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, allowRelations);   
             if (dbData.length) {
                 const instanced: ChildClass[] = [];
         
@@ -633,7 +630,7 @@ class RWSModel<ChildClass> implements IModel{
     ): Promise<void> {
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);         
-        return await this.dbService.delete(collection, conditions);
+        return await this.services.dbService.delete(collection, conditions);
     }
 
     public async delete<ChildClass extends RWSModel<ChildClass>>(): Promise<void> {
@@ -657,7 +654,7 @@ class RWSModel<ChildClass> implements IModel{
 
     static loadModels(): OpModelType<any>[]
     {                        
-        return RWSModel.allModels;
+        return this.allModels || [];
     }
 
     loadModels(): OpModelType<any>[]
@@ -670,8 +667,9 @@ class RWSModel<ChildClass> implements IModel{
         return Object.keys((this as any).constructor._RELATIONS).includes(key) && (this as any).constructor._RELATIONS[key] === true
     }
 
-    public static setServices(services: IRWSModelServices){        
-        RWSModel.services = {...RWSModel.services, ...services};
+    public static setServices(services: IRWSModelServices){
+        this.allModels = services.configService.get('db_models');  
+        this.services = services;
     }
 }
 

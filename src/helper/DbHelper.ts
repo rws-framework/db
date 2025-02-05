@@ -76,7 +76,7 @@ export class DbHelper {
         }
     }
 
-    static async generateModelSections<T extends unknown>(model: OpModelType<T>): Promise<string> {
+    static async generateModelSections(model: OpModelType<any>): Promise<string> {
         let section = '';
         const modelMetadatas: Record<string, {annotationType: string, metadata: any}> = await RWSModel.getModelAnnotations(model);    
     
@@ -95,7 +95,7 @@ export class DbHelper {
             }
             
             if(annotationType === 'Relation'){
-                const relatedModel = modelMetadata.relatedTo as OpModelType<T>;        
+                const relatedModel = modelMetadata.relatedTo as OpModelType<any>;        
                 // Handle direct relation (many-to-one or one-to-one)
                 section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField}], onDelete: Cascade)\n`;      
                 section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
