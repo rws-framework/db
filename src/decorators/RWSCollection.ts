@@ -14,6 +14,9 @@ export function RWSCollection(collectionName: string, options?: IRWSCollectionOp
     const metaOpts: IRWSCollectionMeta = { collectionName, options };
     return function(target: any) {     
         target._collection = collectionName;
+        if(options && options.relations){
+            target._collection = options.relations;
+        }
         Reflect.defineMetadata(`RWSCollection`, metaOpts, target);
     };
 } 
