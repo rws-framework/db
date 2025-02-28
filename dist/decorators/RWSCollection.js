@@ -6,7 +6,10 @@ function RWSCollection(collectionName, options) {
     return function (target) {
         target._collection = collectionName;
         if (options && options.relations) {
-            target._collection = options.relations;
+            target._RELATIONS = options.relations;
+        }
+        if (options && options.ignored_keys) {
+            target._CUT_KEYS = options.ignored_keys;
         }
         Reflect.defineMetadata(`RWSCollection`, metaOpts, target);
     };
