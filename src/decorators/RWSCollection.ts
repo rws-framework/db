@@ -1,4 +1,4 @@
-import { OpModelType } from "src/models/_model";
+import { OpModelType } from "../models/_model";
 
 export interface IRWSCollectionOpts {
     relations?: {
