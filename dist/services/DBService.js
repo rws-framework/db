@@ -42,6 +42,9 @@ class DBService {
             throw new Error('PRISMA CONNECTION ERROR');
         }
     }
+    reconnect(opts = null) {
+        this.connectToDB(opts);
+    }
     async createBaseMongoClient() {
         var _a;
         const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('mongo_url');

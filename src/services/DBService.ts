@@ -50,6 +50,11 @@ class DBService {
         }
     }
 
+    reconnect(opts: IDBClientCreate = null)
+    {
+        this.connectToDB(opts);
+    }
+
     private async createBaseMongoClient(): Promise<MongoClient>
     {
         const dbUrl = this.opts?.dbUrl || this.configService.get('mongo_url');

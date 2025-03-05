@@ -1,4 +1,4 @@
-import {DBService} from '../services/DBService';
+import {DBService, IDBClientCreate} from '../services/DBService';
 import { IRWSModel } from '../types/IRWSModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 

@@ -13,6 +13,7 @@ declare class DBService {
     private connected;
     constructor(configService: IDbConfigHandler);
     private connectToDB;
+    reconnect(opts?: IDBClientCreate): void;
     private createBaseMongoClient;
     private createBaseMongoClientDB;
     cloneDatabase(source: string, target: string): Promise<void>;
