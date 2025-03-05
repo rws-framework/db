@@ -52,11 +52,7 @@ class DbHelper {
             process.env.DB_URL = dbUrl;
             const endPrisma = 'npx prisma';
             const clientPath = path_1.default.join(console_1.rwsPath.findRootWorkspacePath(), 'node_modules', '.prisma', 'client');
-            await console_1.rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd(), false, {
-                env: {
-                    PRISMA_CLIENT_OUTPUT: clientPath
-                }
-            });
+            await console_1.rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd());
             leaveFile = true;
             log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
             if (!leaveFile) {
