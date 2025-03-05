@@ -1,19 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
-function Relation(theModel, required = false, relationField = null, relatedToField = 'id') {
+const _DEFAULTS = { required: false, many: false, embed: false, cascade: { onDelete: 'SetNull', onUpdate: 'Cascade' } };
+function Relation(theModel, relationOptions = _DEFAULTS) {
     return function (target, key) {
         // Store the promise in metadata immediately
         const metadataPromise = Promise.resolve().then(() => {
             const relatedTo = theModel();
-            const metaOpts = { required, relatedTo, relatedToField };
-            if (!relationField) {
-                metaOpts.relationField = relatedTo._collection + '_id';
-            }
-            else {
-                metaOpts.relationField = relationField;
-            }
-            metaOpts.key = key;
+            const metaOpts = {
+                ...relationOptions,
+                cascade: relationOptions.cascade || _DEFAULTS.cascade,
+                relatedTo,
+                relationField: relationOptions.relationField ? relationOptions.relationField : relatedTo._collection + '_id',
+                key
+            };
             return metaOpts;
         });
         // Store both the promise and the key information

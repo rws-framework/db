@@ -1,26 +1,37 @@
 import 'reflect-metadata';
 import { RWSModel, OpModelType } from '../models/_model';
 
+type CascadingSetup = 'Cascade' | 'Restrict' | 'NoAction' | 'SetNull';
+
 interface IRelationOpts {
     required?: boolean
-    key?: string
-    relationField?: string
+    key: string
+    relationField: string
     relatedToField?: string
     relatedTo: OpModelType<RWSModel<any>>
+    many?: boolean
+    embed?: boolean
+    cascade: {
+        onDelete: CascadingSetup,
+        onUpdate: CascadingSetup
+    }
 }
+
+const _DEFAULTS: Partial<IRelationOpts> = { required: false, many: false, embed: false, cascade: { onDelete: 'SetNull', onUpdate: 'Cascade' }};
   
-function Relation(theModel: () => OpModelType<RWSModel<any>>, required: boolean = false, relationField: string = null, relatedToField: string = 'id') {
+function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<IRelationOpts> = _DEFAULTS) {
     return function(target: any, key: string) {     
         // Store the promise in metadata immediately
         const metadataPromise = Promise.resolve().then(() => {
             const relatedTo = theModel();
-            const metaOpts: IRelationOpts = {required, relatedTo, relatedToField};                    
-            if(!relationField){
-                metaOpts.relationField = relatedTo._collection + '_id';
-            } else{
-                metaOpts.relationField = relationField;
-            }  
-            metaOpts.key = key;
+
+            const metaOpts: IRelationOpts = {
+                ...relationOptions, 
+                cascade: relationOptions.cascade || _DEFAULTS.cascade,
+                relatedTo,
+                relationField: relationOptions.relationField ? relationOptions.relationField : relatedTo._collection + '_id',
+                key
+            };                                        
             return metaOpts;
         });
 

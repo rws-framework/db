@@ -29,7 +29,7 @@ class DbHelper {
             for (const model of dbModels) {
                 const modelSection = await DbHelper.generateModelSections(model);
                 template += '\n\n' + modelSection;
-                log('RWS SCHEMA BUILD', chalk_1.default.blue('Building DB Model'), model.name);
+                log(chalk_1.default.green('[RWS]'), chalk_1.default.blue('Building DB Model'), model.name);
                 if (_model_1.RWSModel.isSubclass(model, TimeSeriesModel_1.default)) {
                     dbService.collectionExists(model._collection).then((exists) => {
                         if (exists) {
@@ -51,8 +51,13 @@ class DbHelper {
             fs_1.default.writeFileSync(schemaPath, template);
             process.env.DB_URL = dbUrl;
             const endPrisma = 'npx prisma';
-            await console_1.rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd());
-            // leaveFile = true;
+            const clientPath = path_1.default.join(console_1.rwsPath.findRootWorkspacePath(), 'node_modules', '.prisma', 'client');
+            await console_1.rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd(), false, {
+                env: {
+                    PRISMA_CLIENT_OUTPUT: clientPath
+                }
+            });
+            leaveFile = true;
             log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
             if (!leaveFile) {
                 fs_1.default.unlinkSync(schemaPath);
@@ -60,6 +65,7 @@ class DbHelper {
         }
     }
     static async generateModelSections(model) {
+        var _a, _b;
         let section = '';
         const modelMetadatas = await _model_1.RWSModel.getModelAnnotations(model);
         const modelName = model._collection;
@@ -73,14 +79,30 @@ class DbHelper {
                 continue;
             }
             if (annotationType === 'Relation') {
-                const relatedModel = modelMetadata.relatedTo;
-                // Handle direct relation (many-to-one or one-to-one)
-                section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField}], onDelete: Cascade)\n`;
-                section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
+                const relationMeta = modelMetadata;
+                const relatedModel = relationMeta.relatedTo;
+                const isMany = relationMeta.many;
+                const cascadeOpts = [];
+                if ((_a = relationMeta.cascade) === null || _a === void 0 ? void 0 : _a.onDelete) {
+                    cascadeOpts.push(`onDelete: ${relationMeta.cascade.onDelete}`);
+                }
+                if ((_b = relationMeta.cascade) === null || _b === void 0 ? void 0 : _b.onUpdate) {
+                    cascadeOpts.push(`onUpdate: ${relationMeta.cascade.onUpdate}`);
+                }
+                if (isMany) {
+                    // Handle many-to-many or one-to-many relation
+                    section += `\t${key} ${relatedModel._collection}[] @relation("${modelName}_${relatedModel._collection}")\n`;
+                }
+                else {
+                    // Handle one-to-one or many-to-one relation
+                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField || 'id'}], ${cascadeOpts.join(', ')})\n`;
+                    section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
+                }
             }
             else if (annotationType === 'InverseRelation') {
+                const relationMeta = modelMetadata;
                 // Handle inverse relation (one-to-many or one-to-one)
-                section += `\t${key} ${modelMetadata.inversionModel._collection}[] @relation("${modelMetadata.inversionModel._collection}_${modelName}")\n`;
+                section += `\t${key} ${relationMeta.inversionModel._collection}[] @relation("${relationMeta.relationName ? relationMeta.relationName : `${relationMeta.inversionModel._collection}_${modelName}`}")\n`;
             }
             else if (annotationType === 'InverseTimeSeries') {
                 section += `\t${key} String[] @db.ObjectId\n`;
@@ -104,6 +126,9 @@ class DbHelper {
         }
         if (input == 'Date') {
             return 'DateTime';
+        }
+        if (input == 'Array') {
+            return 'Json';
         }
         const firstChar = input.charAt(0).toUpperCase();
         const restOfString = input.slice(1);

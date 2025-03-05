@@ -7,6 +7,8 @@ import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IMetaOpts, OpModelType, RWSModel } from '../models/_model';
 import TimeSeriesModel from '../models/TimeSeriesModel';
 import { DBService } from '../services/DBService';
+import { IRelationOpts } from '../decorators/Relation';
+import { InverseRelationOpts } from '../decorators/InverseRelation';
 
 const log = console.log;
 const workspaceRoot = rwsPath.findRootWorkspacePath();
@@ -36,7 +38,7 @@ export class DbHelper {
 
                 template += '\n\n' + modelSection;  
 
-                log('RWS SCHEMA BUILD', chalk.blue('Building DB Model'), model.name);
+                log(chalk.green('[RWS]'), chalk.blue('Building DB Model'), model.name);
             
                 if(RWSModel.isSubclass(model as any, TimeSeriesModel)){    
                     dbService.collectionExists(model._collection).then((exists: boolean) => {
@@ -65,9 +67,15 @@ export class DbHelper {
             fs.writeFileSync(schemaPath, template);  
             process.env.DB_URL = dbUrl;
             const endPrisma = 'npx prisma';
-            await rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd());  
 
-            // leaveFile = true;
+            const clientPath = path.join(rwsPath.findRootWorkspacePath(), 'node_modules', '.prisma', 'client');
+            await rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd(), false, {
+                env: {
+                    PRISMA_CLIENT_OUTPUT: clientPath
+                }
+            });  
+
+            leaveFile = true;
             log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
             if(!leaveFile){
@@ -86,22 +94,43 @@ export class DbHelper {
         section += '\tid String @map("_id") @id @default(auto()) @db.ObjectId\n';
      
         for (const key in modelMetadatas) {
-            const modelMetadata: IMetaOpts = modelMetadatas[key].metadata;            
+            const modelMetadata = modelMetadatas[key].metadata;            
             const requiredString = modelMetadata.required ? '' : '?';  
             const annotationType: string = modelMetadatas[key].annotationType;
     
             if(key === 'id'){
                 continue;
             }
+
             
             if(annotationType === 'Relation'){
-                const relatedModel = modelMetadata.relatedTo as OpModelType<any>;        
-                // Handle direct relation (many-to-one or one-to-one)
-                section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField}], onDelete: Cascade)\n`;      
-                section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
-            } else if (annotationType === 'InverseRelation'){        
+                const relationMeta = modelMetadata as IRelationOpts
+
+                const relatedModel = relationMeta.relatedTo as OpModelType<any>;  
+                const isMany = relationMeta.many;
+                const cascadeOpts = [];
+
+                if (relationMeta.cascade?.onDelete) {
+                    cascadeOpts.push(`onDelete: ${relationMeta.cascade.onDelete}`);
+                }
+
+                if (relationMeta.cascade?.onUpdate) {
+                    cascadeOpts.push(`onUpdate: ${relationMeta.cascade.onUpdate}`);
+                }
+      
+                if (isMany) {
+                    // Handle many-to-many or one-to-many relation
+                    section += `\t${key} ${relatedModel._collection}[] @relation("${modelName}_${relatedModel._collection}")\n`;
+                } else {
+                    // Handle one-to-one or many-to-one relation
+                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField || 'id'}], ${cascadeOpts.join(', ')})\n`;
+                    section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
+                }
+            } else if (annotationType === 'InverseRelation'){   
+                const relationMeta = modelMetadata as InverseRelationOpts;
+     
                 // Handle inverse relation (one-to-many or one-to-one)
-                section += `\t${key} ${modelMetadata.inversionModel._collection}[] @relation("${modelMetadata.inversionModel._collection}_${modelName}")\n`;
+                section += `\t${key} ${relationMeta.inversionModel._collection}[] @relation("${ relationMeta.relationName ? relationMeta.relationName : `${relationMeta.inversionModel._collection}_${modelName}`}")\n`;
             } else if (annotationType === 'InverseTimeSeries'){        
                 section += `\t${key} String[] @db.ObjectId\n`;      
             } else if (annotationType === 'TrackType'){        
@@ -128,6 +157,10 @@ export class DbHelper {
     
         if(input == 'Date'){
             return 'DateTime';
+        }
+
+        if(input == 'Array'){
+            return 'Json';
         }
     
     
