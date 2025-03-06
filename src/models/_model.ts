@@ -59,7 +59,7 @@ export interface OpModelType<ChildClass> {
     getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
     getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
     getCollection(): string;
-    setServices(services: IRWSModelServices): void;
+    setServices(services: IRWSModelServices): void;    
 }
 
 class RWSModel<ChildClass> implements IModel{
@@ -118,7 +118,7 @@ class RWSModel<ChildClass> implements IModel{
         }) !== undefined;
     }
 
-    protected _fill(data: any): RWSModel<ChildClass>{
+    _fill(data: any): RWSModel<ChildClass>{
         for (const key in data) {
             if (data.hasOwnProperty(key)) {   
               
@@ -170,7 +170,6 @@ class RWSModel<ChildClass> implements IModel{
         const seriesHydrationfields: string[] = []; 
         
         if (allowRelations) {
-            // Handle many-to-many relations
             for (const key in relManyData) { 
                 if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
                     continue;
@@ -188,8 +187,7 @@ class RWSModel<ChildClass> implements IModel{
                     });    
                 }                                
             }
-            
-            // Handle one-to-one relations
+  
             for (const key in relOneData) {      
                 if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
                     continue;

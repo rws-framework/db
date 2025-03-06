@@ -73,7 +73,7 @@ declare class RWSModel<ChildClass> implements IModel {
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void;
     checkForInclusion(): boolean;
     static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean;
-    protected _fill(data: any): RWSModel<ChildClass>;
+    _fill(data: any): RWSModel<ChildClass>;
     protected hasRelation(key: string): boolean;
     protected bindRelation(key: string, relatedModel: RWSModel<any>): RelationBindType;
     _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean): Promise<ChildClass>;

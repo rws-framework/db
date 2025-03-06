@@ -119,7 +119,6 @@ class RWSModel {
         });
         const seriesHydrationfields = [];
         if (allowRelations) {
-            // Handle many-to-many relations
             for (const key in relManyData) {
                 if (!fullDataMode && this.constructor._CUT_KEYS.includes(key)) {
                     continue;
@@ -135,7 +134,6 @@ class RWSModel {
                     });
                 }
             }
-            // Handle one-to-one relations
             for (const key in relOneData) {
                 if (!fullDataMode && this.constructor._CUT_KEYS.includes(key)) {
                     continue;

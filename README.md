@@ -10,34 +10,38 @@ import User from "./User";
 
 export const models = [ User, ApiKey];
 ```
-
-
 ## Example user model
 
 ```typescript
-    import { RWSannotations, RWSModel } from '@rws-framework/server';
+    import { TrackType, InverseRelation, RWSCollection, RWSModel } from '@rws-framework/db';
 
-import IUser from './interfaces/IUser';
-import 'reflect-metadata';
+    import IUser from './interfaces/IUser';
+    import 'reflect-metadata';
 
-import ApiKey from './ApiKey';
-import IApiKey from './interfaces/IApiKey';
-const { RWSTrackType, InverseRelation } = RWSannotations.modelAnnotations;
+    import ApiKey from './ApiKey';
+    import IApiKey from './interfaces/IApiKey';
 
+@RWSCollection('users', { 
+    relations: {
+        transcriptions: true,
+        apiKeys: true
+    },
+    ignored_keys: ['passwd']
+})
 class User extends RWSModel<User> implements IUser {
-    @RWSTrackType(String)
+    @TrackType(String)
     username: string;
 
-    @RWSTrackType(String) // Can also handle Object and Number
+    @TrackType(String) // Can also handle Object and Number
     passwd: string;
 
-    @RWSTrackType(Boolean)
+    @TrackType(Boolean)
     active: boolean;
 
-    @RWSTrackType(Date, { required: true })
+    @TrackType(Date, { required: true })
     created_at: Date;
   
-    @RWSTrackType(Date)
+    @TrackType(Date)
     updated_at: Date;
 
     /**
@@ -47,25 +51,12 @@ class User extends RWSModel<User> implements IUser {
     @InverseRelation(() => ApiKey, () => User)
     apiKeys: IApiKey[];
 
-    static _collection = 'user';
-
-    static _RELATIONS = {
-        transcriptions: true,
-        apiKeys: true
-    };
-
-    static _CUT_KEYS = ['passwd'];
-
     constructor(data?: IUser) {   
         super(data);    
 
         if(!this.created_at){
             this.created_at = new Date();
         }      
-    }    
-
-    addMessage(message: string){
-        this.messages.push(message);
     }
 }
 
