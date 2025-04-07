@@ -1,5 +1,5 @@
 import { RWSModel } from './RWSModel';
-export default class TimeSeriesModel<ChildClass> extends RWSModel<TimeSeriesModel<ChildClass>> {
+export default class TimeSeriesModel<T> extends RWSModel<T> {
     value: number;
     timestamp: Date;
     params: any;

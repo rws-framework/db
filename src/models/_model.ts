@@ -15,13 +15,16 @@ import {
 } from './index';
 
 export {
+    RWSModel,
+    TrackType
+};
+
+export type {
     IModel,
     IRWSModelServices,
     OpModelType,
     RelationBindType,
     RelOneMetaType,
-    RelManyMetaType,
-    RWSModel,
-    TrackType,
+    RelManyMetaType,    
     IMetaOpts
 };

@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IMetaOpts, OpModelType, RWSModel } from '../models/_model';
-import TimeSeriesModel from '../models/TimeSeriesModel';
+import TimeSeriesModel from '../models/core/TimeSeriesModel';
 import { DBService } from '../services/DBService';
 import { IRelationOpts } from '../decorators/Relation';
 import { InverseRelationOpts } from '../decorators/InverseRelation';

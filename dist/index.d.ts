@@ -1,6 +1,6 @@
 import { DBService } from "./services/DBService";
 import { RWSModel, OpModelType } from "./models/_model";
-import TimeSeriesModel from './models/TimeSeriesModel';
+import TimeSeriesModel from './models/core/TimeSeriesModel';
 import { InverseRelation, Relation, TrackType, InverseTimeSeries, IMetaOpts } from './decorators';
 import { DbHelper } from './helper/DbHelper';
 import { FieldsHelper } from './helper/FieldsHelper';

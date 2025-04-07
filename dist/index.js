@@ -8,7 +8,7 @@ const DBService_1 = require("./services/DBService");
 Object.defineProperty(exports, "DBService", { enumerable: true, get: function () { return DBService_1.DBService; } });
 const _model_1 = require("./models/_model");
 Object.defineProperty(exports, "RWSModel", { enumerable: true, get: function () { return _model_1.RWSModel; } });
-const TimeSeriesModel_1 = __importDefault(require("./models/TimeSeriesModel"));
+const TimeSeriesModel_1 = __importDefault(require("./models/core/TimeSeriesModel"));
 exports.TimeSeriesModel = TimeSeriesModel_1.default;
 const decorators_1 = require("./decorators");
 Object.defineProperty(exports, "InverseRelation", { enumerable: true, get: function () { return decorators_1.InverseRelation; } });
