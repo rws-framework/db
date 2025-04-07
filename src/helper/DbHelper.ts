@@ -5,7 +5,7 @@ import fs from 'fs';
 
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IMetaOpts, OpModelType, RWSModel } from '../models/_model';
-import TimeSeriesModel from '../models/core/TimeSeriesModel';
+// import TimeSeriesModel from '../models/core/TimeSeriesModel';
 import { DBService } from '../services/DBService';
 import { IRelationOpts } from '../decorators/Relation';
 import { InverseRelationOpts } from '../decorators/InverseRelation';
@@ -40,17 +40,17 @@ export class DbHelper {
 
                 log(chalk.green('[RWS]'), chalk.blue('Building DB Model'), model.name);
             
-                if(RWSModel.isSubclass(model as any, TimeSeriesModel)){    
-                    dbService.collectionExists(model._collection).then((exists: boolean) => {
-                        if (exists){
-                            return;
-                        }
+                // if(RWSModel.isSubclass(model as any, TimeSeriesModel)){    
+                //     dbService.collectionExists(model._collection).then((exists: boolean) => {
+                //         if (exists){
+                //             return;
+                //         }
 
-                        log(chalk.green('[RWS Init]') + ` creating TimeSeries type collection from ${model} model`);
+                //         log(chalk.green('[RWS Init]') + ` creating TimeSeries type collection from ${model} model`);
 
-                        dbService.createTimeSeriesCollection(model._collection);    
-                    });
-                }
+                //         dbService.createTimeSeriesCollection(model._collection);    
+                //     });
+                // }
             }
 
             const schemaDir = path.join(moduleDir, 'prisma');

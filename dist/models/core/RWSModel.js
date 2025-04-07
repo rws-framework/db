@@ -8,18 +8,13 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RWSModel = void 0;
 const decorators_1 = require("../../decorators");
 const FieldsHelper_1 = require("../../helper/FieldsHelper");
 const RelationUtils_1 = require("../utils/RelationUtils");
-const PaginationUtils_1 = require("../utils/PaginationUtils");
 const TimeSeriesUtils_1 = require("../utils/TimeSeriesUtils");
 const ModelUtils_1 = require("../utils/ModelUtils");
-const TimeSeriesModel_1 = __importDefault(require("./TimeSeriesModel"));
 class RWSModel {
     constructor(data) {
         if (!this.getCollection()) {
@@ -38,7 +33,10 @@ class RWSModel {
         }
     }
     checkForInclusionWithThrow() {
-        this.checkForInclusionWithThrow();
+        const constructor = this.constructor;
+        if (!constructor.checkForInclusion(constructor.name)) {
+            throw new Error('Model undefined: ' + constructor.name);
+        }
     }
     static checkForInclusionWithThrow(checkModelType) {
         if (!this.checkForInclusion(this.name)) {
@@ -46,7 +44,8 @@ class RWSModel {
         }
     }
     checkForInclusion() {
-        return this.checkForInclusion();
+        const constructor = this.constructor;
+        return constructor.checkForInclusion(constructor.name);
     }
     static checkForInclusion(checkModelType) {
         return this.loadModels().find((definedModel) => {
@@ -172,8 +171,31 @@ class RWSModel {
     static async getRelationManyMeta(model, classFields) {
         return RelationUtils_1.RelationUtils.getRelationManyMeta(model, classFields);
     }
-    static paginate(pageParams, findParams) {
-        return PaginationUtils_1.PaginationUtils.paginate.bind(this)(pageParams, findParams);
+    static async paginate(paginateParams, findParams) {
+        var _a, _b, _c, _d, _e;
+        const conditions = (_a = findParams === null || findParams === void 0 ? void 0 : findParams.conditions) !== null && _a !== void 0 ? _a : {};
+        const ordering = (_b = findParams === null || findParams === void 0 ? void 0 : findParams.ordering) !== null && _b !== void 0 ? _b : null;
+        const fields = (_c = findParams === null || findParams === void 0 ? void 0 : findParams.fields) !== null && _c !== void 0 ? _c : null;
+        const allowRelations = (_d = findParams === null || findParams === void 0 ? void 0 : findParams.allowRelations) !== null && _d !== void 0 ? _d : true;
+        const fullData = (_e = findParams === null || findParams === void 0 ? void 0 : findParams.fullData) !== null && _e !== void 0 ? _e : false;
+        const collection = Reflect.get(this, '_collection');
+        this.checkForInclusionWithThrow(this.name);
+        try {
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);
+            if (dbData.length) {
+                const instanced = [];
+                for (const data of dbData) {
+                    const inst = new this();
+                    instanced.push((await inst._asyncFill(data, fullData, allowRelations)));
+                }
+                return instanced;
+            }
+            return [];
+        }
+        catch (rwsError) {
+            console.error(rwsError);
+            throw rwsError;
+        }
     }
     async toMongo() {
         const data = {};
@@ -218,7 +240,7 @@ class RWSModel {
         }
         else {
             this.preCreate();
-            const isTimeSeries = this instanceof TimeSeriesModel_1.default;
+            const isTimeSeries = false; //this instanceof timeSeriesModel;
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);
             await this._asyncFill(updatedModelData);
             this.postCreate();

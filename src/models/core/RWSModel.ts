@@ -5,14 +5,13 @@ import { TrackType, IMetaOpts } from '../../decorators';
 import { FieldsHelper } from '../../helper/FieldsHelper';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { RelationUtils } from '../utils/RelationUtils';
-import { PaginationUtils } from '../utils/PaginationUtils';
 
 import { TimeSeriesUtils } from '../utils/TimeSeriesUtils';
 import { ModelUtils } from '../utils/ModelUtils';
-import timeSeriesModel from './TimeSeriesModel';      
+// import timeSeriesModel from './TimeSeriesModel';      
 import { DBService } from '../../services/DBService';
 
-class RWSModel<ChildClass> implements IModel {
+class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
     
     [key: string]: any;
@@ -44,7 +43,10 @@ class RWSModel<ChildClass> implements IModel {
     }    
     
     checkForInclusionWithThrow(): void {
-        this.checkForInclusionWithThrow();
+        const constructor = this.constructor as OpModelType<any>;
+        if(!constructor.checkForInclusion(constructor.name)){
+            throw new Error('Model undefined: ' + constructor.name);
+        }
     }
 
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void {
@@ -54,7 +56,8 @@ class RWSModel<ChildClass> implements IModel {
     }
 
     checkForInclusion(): boolean {                
-        return this.checkForInclusion();        
+        const constructor = this.constructor as OpModelType<any>;
+        return constructor.checkForInclusion(constructor.name);        
     }
 
     static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean {        
@@ -63,7 +66,7 @@ class RWSModel<ChildClass> implements IModel {
         }) !== undefined;
     }
 
-    protected _fill(data: any): RWSModel<ChildClass> {
+    protected _fill(data: any): RWSModel<T> {
         for (const key in data) {
             if (data.hasOwnProperty(key)) {   
               
@@ -90,7 +93,7 @@ class RWSModel<ChildClass> implements IModel {
         return RelationUtils.bindRelation(relatedModel);
     }
 
-    public async _asyncFill(data: any, fullDataMode = false, allowRelations = true): Promise<ChildClass> {
+    public async _asyncFill(data: any, fullDataMode = false, allowRelations = true): Promise<T> {
         const collections_to_models: {[key: string]: any} = {};           
         const timeSeriesIds = TimeSeriesUtils.getTimeSeriesModelFields(this);
     
@@ -191,10 +194,10 @@ class RWSModel<ChildClass> implements IModel {
             }       
         }     
     
-        return this as any as ChildClass;
+        return this as any as T;
     }    
 
-    private getModelScalarFields(model: RWSModel<ChildClass>): string[] {
+    private getModelScalarFields(model: RWSModel<T>): string[] {
         return ModelUtils.getModelScalarFields(model);
     }
 
@@ -214,8 +217,38 @@ class RWSModel<ChildClass> implements IModel {
         return RelationUtils.getRelationManyMeta(model, classFields);
     }
 
-    static paginate<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<any>,pageParams: IPaginationParams, findParams?: FindByType): Promise<RWSModel<ChildClass>[]> {
-        return PaginationUtils.paginate.bind(this)(pageParams, findParams);
+    public static async paginate<T extends RWSModel<T>>(
+        this: OpModelType<T>,  
+        paginateParams: IPaginationParams,  
+        findParams?: FindByType
+    ): Promise<T[]> {
+        const conditions = findParams?.conditions ?? {};
+        const ordering = findParams?.ordering ?? null;
+        const fields = findParams?.fields ?? null;
+        const allowRelations = findParams?.allowRelations ?? true;
+        const fullData = findParams?.fullData ?? false;
+
+        const collection = Reflect.get(this, '_collection');
+        this.checkForInclusionWithThrow(this.name);
+        try {
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);   
+            if (dbData.length) {
+                const instanced: T[] = [];
+        
+                for (const data of dbData) { 
+                    const inst: T = new (this as { new(): T })();
+                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as T);
+                }
+        
+                return instanced;
+            }
+        
+            return [];
+        } catch (rwsError: Error | any) {
+            console.error(rwsError);
+
+            throw rwsError;
+        }                 
     }
 
     public async toMongo(): Promise<any> {
@@ -274,7 +307,7 @@ class RWSModel<ChildClass> implements IModel {
         } else {
             this.preCreate();      
       
-            const isTimeSeries = this instanceof timeSeriesModel;
+            const isTimeSeries = false;//this instanceof timeSeriesModel;
 
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);      
 
@@ -339,8 +372,8 @@ class RWSModel<ChildClass> implements IModel {
         return sanitizedData;
     }
 
-    public static async watchCollection<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>, 
+    public static async watchCollection<T extends RWSModel<T>>(
+        this: OpModelType<T>, 
         preRun: () => void
     ){
         const collection = Reflect.get(this, '_collection');
@@ -348,10 +381,10 @@ class RWSModel<ChildClass> implements IModel {
         return await this.services.dbService.watchCollection(collection, preRun);
     }
 
-    public static async findOneBy<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>,
+    public static async findOneBy<T extends RWSModel<T>>(
+        this: OpModelType<T>,
         findParams?: FindByType
-    ): Promise<ChildClass | null> {
+    ): Promise<T | null> {
         const conditions = findParams?.conditions ?? {};
         const ordering = findParams?.ordering ?? null;
         const fields = findParams?.fields ?? null;
@@ -366,18 +399,18 @@ class RWSModel<ChildClass> implements IModel {
         
     
         if (dbData) {
-            const inst: ChildClass = new (this as { new(): ChildClass })();
+            const inst: T = new (this as { new(): T })();
             return await inst._asyncFill(dbData, fullData, allowRelations);
         }
     
         return null;
     }
 
-    public static async find<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>,
+    public static async find<T extends RWSModel<T>>(
+        this: OpModelType<T>,
         id: string,        
         findParams: Omit<FindByType, 'conditions'> = null
-    ): Promise<ChildClass | null> {        
+    ): Promise<T | null> {        
         const ordering = findParams?.ordering ?? null;
         const fields = findParams?.fields ?? null;
         const allowRelations = findParams?.allowRelations ?? true;          
@@ -389,17 +422,17 @@ class RWSModel<ChildClass> implements IModel {
         const dbData = await this.services.dbService.findOneBy(collection, { id }, fields, ordering, allowRelations);
     
         if (dbData) {            
-            const inst: ChildClass = new (this as { new(): ChildClass })();
+            const inst: T = new (this as { new(): T })();
             return await inst._asyncFill(dbData, fullData, allowRelations);
         }
     
         return null;
     }   
     
-    public static async findBy<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>,    
+    public static async findBy<T extends RWSModel<T>>(
+        this: OpModelType<T>,    
         findParams?: FindByType
-    ): Promise<ChildClass[]> {
+    ): Promise<T[]> {
         const conditions = findParams?.conditions ?? {};
         const ordering = findParams?.ordering ?? null;
         const fields = findParams?.fields ?? null;
@@ -411,11 +444,11 @@ class RWSModel<ChildClass> implements IModel {
         try {
             const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering);   
             if (dbData.length) {
-                const instanced: ChildClass[] = [];
+                const instanced: T[] = [];
         
                 for (const data of dbData) { 
-                    const inst: ChildClass = new (this as { new(): ChildClass })();
-                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as ChildClass);
+                    const inst: T = new (this as { new(): T })();
+                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as T);
                 }
         
                 return instanced;
@@ -429,8 +462,8 @@ class RWSModel<ChildClass> implements IModel {
         }                 
     }
 
-    public static async delete<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>,
+    public static async delete<T extends RWSModel<T>>(
+        this: OpModelType<T>,
         conditions: any
     ): Promise<void> {
         const collection = Reflect.get(this, '_collection');
@@ -438,7 +471,7 @@ class RWSModel<ChildClass> implements IModel {
         return await this.services.dbService.delete(collection, conditions);
     }
 
-    public async delete<ChildClass extends RWSModel<ChildClass>>(): Promise<void> {
+    public async delete<T extends RWSModel<T>>(): Promise<void> {
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow();
         return await this.dbService.delete(collection, {

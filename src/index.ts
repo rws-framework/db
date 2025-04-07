@@ -1,6 +1,6 @@
 import { DBService } from "./services/DBService";
 import { RWSModel, OpModelType } from "./models/_model";
-import TimeSeriesModel from './models/core/TimeSeriesModel';
+// import TimeSeriesModel from './models/core/TimeSeriesModel';
 import { InverseRelation, Relation, TrackType, InverseTimeSeries, IMetaOpts } from './decorators';
 
 import { DbHelper } from './helper/DbHelper';
@@ -28,7 +28,7 @@ export {
    DBService,
 
    FindByType, 
-   TimeSeriesModel,   
+   // TimeSeriesModel,   
 
    InverseRelation, Relation, TrackType, InverseTimeSeries,
 

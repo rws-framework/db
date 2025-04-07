@@ -4,11 +4,11 @@ import { IRWSModelServices } from './IRWSModelServices';
 import { RelOneMetaType, RelManyMetaType } from '../types/RelationTypes';
 import { DBService } from '../../services/DBService';
 
-// Forward declaration to avoid circular dependency
-type RWSModel<T> = any;
+// Reference to the RWSModel class to avoid circular dependency
+import type { RWSModel } from '../core/RWSModel';
 
-export interface OpModelType<ChildClass> {
-    new(data?: any | null): ChildClass;
+export interface OpModelType<T> {
+    new(data?: any | null): T;
     services: IRWSModelServices;
     name: string;
     _collection: string;
@@ -20,7 +20,7 @@ export interface OpModelType<ChildClass> {
     checkForInclusion: (className: string) => boolean;
     findOneBy<T extends RWSModel<T>>(
         this: OpModelType<T>,
-        findParams: FindByType
+        findParams?: FindByType
     ): Promise<T | null>;
     find<T extends RWSModel<T>>(
         this: OpModelType<T>,
@@ -29,18 +29,18 @@ export interface OpModelType<ChildClass> {
     ): Promise<T | null>;
     findBy<T extends RWSModel<T>>(
         this: OpModelType<T>,    
-        findParams: FindByType
+        findParams?: FindByType
     ): Promise<T[]>;
     paginate<T extends RWSModel<T>>(
         this: OpModelType<T>,    
         paginateParams?: IPaginationParams,
         findParams?: FindByType
     ): Promise<T[]>;
-    delete<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>,
+    delete<T extends RWSModel<T>>(
+        this: OpModelType<T>,
         conditions: any
     ): Promise<void>;
-    create<T extends RWSModel<T>>(this: OpModelType<T>, data: T): Promise<T>;
+    create<T extends RWSModel<T>>(this: new () => T, data: any): Promise<T>;
     getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
     getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
     getCollection(): string;

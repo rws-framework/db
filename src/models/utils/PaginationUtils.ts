@@ -5,11 +5,11 @@ import { FindByType, IPaginationParams } from '../../types/FindParams';
 
 export class PaginationUtils {
 
-    public static async paginate<ChildClass extends RWSModel<ChildClass>>(
-            this: OpModelType<ChildClass>,             
+    public static async paginate<T extends RWSModel<T>>(
+            this: OpModelType<T>,             
             paginationParams: IPaginationParams = { page: 0, per_page: 50 },
             findParams: FindByType = {},
-        ): Promise<ChildClass[]> {
+        ): Promise<T[]> {
         const conditions = findParams?.conditions ?? {};
         const ordering = findParams?.ordering ?? null;
         const fields = findParams?.fields ?? null;
@@ -21,11 +21,11 @@ export class PaginationUtils {
         try {
             const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginationParams);   
             if (dbData.length) {
-                const instanced: ChildClass[] = [];
+                const instanced: T[] = [];
         
                 for (const data of dbData) { 
-                    const inst: ChildClass = new (this as { new(): ChildClass })();
-                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as ChildClass);
+                    const inst: T = new (this as { new(): T })();
+                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as T);
                 }
         
                 return instanced;

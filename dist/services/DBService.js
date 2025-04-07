@@ -139,8 +139,9 @@ class DBService {
             params.orderBy = ordering;
         }
         if (pagination) {
-            params.skip = pagination.page * pagination.per_page;
-            params.take = pagination.per_page;
+            const perPage = pagination.per_page || 50;
+            params.skip = pagination.page * perPage;
+            params.take = perPage;
         }
         const retData = await this.getCollectionHandler(collection).findMany(params);
         return retData;

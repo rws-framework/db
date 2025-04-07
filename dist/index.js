@@ -1,15 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FieldsHelper = exports.DbHelper = exports.InverseTimeSeries = exports.TrackType = exports.Relation = exports.InverseRelation = exports.TimeSeriesModel = exports.DBService = exports.RWSCollection = exports.RWSModel = void 0;
+exports.FieldsHelper = exports.DbHelper = exports.InverseTimeSeries = exports.TrackType = exports.Relation = exports.InverseRelation = exports.DBService = exports.RWSCollection = exports.RWSModel = void 0;
 const DBService_1 = require("./services/DBService");
 Object.defineProperty(exports, "DBService", { enumerable: true, get: function () { return DBService_1.DBService; } });
 const _model_1 = require("./models/_model");
 Object.defineProperty(exports, "RWSModel", { enumerable: true, get: function () { return _model_1.RWSModel; } });
-const TimeSeriesModel_1 = __importDefault(require("./models/core/TimeSeriesModel"));
-exports.TimeSeriesModel = TimeSeriesModel_1.default;
+// import TimeSeriesModel from './models/core/TimeSeriesModel';
 const decorators_1 = require("./decorators");
 Object.defineProperty(exports, "InverseRelation", { enumerable: true, get: function () { return decorators_1.InverseRelation; } });
 Object.defineProperty(exports, "Relation", { enumerable: true, get: function () { return decorators_1.Relation; } });

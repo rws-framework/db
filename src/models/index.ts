@@ -3,7 +3,7 @@ import { IRWSModelServices } from './interfaces/IRWSModelServices';
 import { OpModelType } from './interfaces/OpModelType';
 import { RelationBindType, RelOneMetaType, RelManyMetaType } from './types/RelationTypes';
 import { RWSModel } from './core/RWSModel';
-import TimeSeriesModel from './core/TimeSeriesModel';
+// import TimeSeriesModel from './core/TimeSeriesModel';
 import { TrackType, IMetaOpts } from '../decorators';
 
 export {
@@ -14,7 +14,7 @@ export {
     RelOneMetaType,
     RelManyMetaType,
     RWSModel,
-    TimeSeriesModel,
+    // TimeSeriesModel,
     TrackType,
     IMetaOpts
 };

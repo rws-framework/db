@@ -3,7 +3,7 @@ import { IRWSModelServices } from '../interfaces/IRWSModelServices';
 import { OpModelType } from '../interfaces/OpModelType';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { DBService } from '../../services/DBService';
-declare class RWSModel<ChildClass> implements IModel {
+declare class RWSModel<T> implements IModel {
     static services: IRWSModelServices;
     [key: string]: any;
     id: string;
@@ -17,20 +17,20 @@ declare class RWSModel<ChildClass> implements IModel {
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void;
     checkForInclusion(): boolean;
     static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean;
-    protected _fill(data: any): RWSModel<ChildClass>;
+    protected _fill(data: any): RWSModel<T>;
     protected hasRelation(key: string): boolean;
     protected bindRelation(key: string, relatedModel: RWSModel<any>): {
         connect: {
             id: string;
         };
     };
-    _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean): Promise<ChildClass>;
+    _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean): Promise<T>;
     private getModelScalarFields;
     private getRelationOneMeta;
     static getRelationOneMeta(model: any, classFields: string[]): Promise<import("..").RelOneMetaType<import("../..").IRWSModel>>;
     private getRelationManyMeta;
     static getRelationManyMeta(model: any, classFields: string[]): Promise<import("..").RelManyMetaType<import("../..").IRWSModel>>;
-    static paginate<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<any>, pageParams: IPaginationParams, findParams?: FindByType): Promise<RWSModel<ChildClass>[]>;
+    static paginate<T extends RWSModel<T>>(this: OpModelType<T>, paginateParams: IPaginationParams, findParams?: FindByType): Promise<T[]>;
     toMongo(): Promise<any>;
     getCollection(): string | null;
     static getCollection(): string | null;
@@ -49,12 +49,12 @@ declare class RWSModel<ChildClass> implements IModel {
     isDbVariable(variable: string): Promise<boolean>;
     static checkDbVariable(constructor: any, variable: string): Promise<boolean>;
     sanitizeDBData(data: any): any;
-    static watchCollection<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<ChildClass>, preRun: () => void): Promise<any>;
-    static findOneBy<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<ChildClass>, findParams?: FindByType): Promise<ChildClass | null>;
-    static find<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<ChildClass>, id: string, findParams?: Omit<FindByType, 'conditions'>): Promise<ChildClass | null>;
-    static findBy<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<ChildClass>, findParams?: FindByType): Promise<ChildClass[]>;
-    static delete<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<ChildClass>, conditions: any): Promise<void>;
-    delete<ChildClass extends RWSModel<ChildClass>>(): Promise<void>;
+    static watchCollection<T extends RWSModel<T>>(this: OpModelType<T>, preRun: () => void): Promise<any>;
+    static findOneBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T | null>;
+    static find<T extends RWSModel<T>>(this: OpModelType<T>, id: string, findParams?: Omit<FindByType, 'conditions'>): Promise<T | null>;
+    static findBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T[]>;
+    static delete<T extends RWSModel<T>>(this: OpModelType<T>, conditions: any): Promise<void>;
+    delete<T extends RWSModel<T>>(): Promise<void>;
     static create<T extends RWSModel<T>>(this: new () => T, data: any): Promise<T>;
     static loadModels(): OpModelType<any>[];
     loadModels(): OpModelType<any>[];

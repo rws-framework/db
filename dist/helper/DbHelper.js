@@ -9,7 +9,6 @@ const chalk_1 = __importDefault(require("chalk"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const _model_1 = require("../models/_model");
-const TimeSeriesModel_1 = __importDefault(require("../models/core/TimeSeriesModel"));
 const log = console.log;
 const workspaceRoot = console_1.rwsPath.findRootWorkspacePath();
 const moduleDir = path_1.default.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
@@ -30,15 +29,15 @@ class DbHelper {
                 const modelSection = await DbHelper.generateModelSections(model);
                 template += '\n\n' + modelSection;
                 log(chalk_1.default.green('[RWS]'), chalk_1.default.blue('Building DB Model'), model.name);
-                if (_model_1.RWSModel.isSubclass(model, TimeSeriesModel_1.default)) {
-                    dbService.collectionExists(model._collection).then((exists) => {
-                        if (exists) {
-                            return;
-                        }
-                        log(chalk_1.default.green('[RWS Init]') + ` creating TimeSeries type collection from ${model} model`);
-                        dbService.createTimeSeriesCollection(model._collection);
-                    });
-                }
+                // if(RWSModel.isSubclass(model as any, TimeSeriesModel)){    
+                //     dbService.collectionExists(model._collection).then((exists: boolean) => {
+                //         if (exists){
+                //             return;
+                //         }
+                //         log(chalk.green('[RWS Init]') + ` creating TimeSeries type collection from ${model} model`);
+                //         dbService.createTimeSeriesCollection(model._collection);    
+                //     });
+                // }
             }
             const schemaDir = path_1.default.join(moduleDir, 'prisma');
             const schemaPath = path_1.default.join(schemaDir, 'schema.prisma');
