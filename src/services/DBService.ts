@@ -197,7 +197,7 @@ class DBService {
 
         if(pagination){
             const perPage = pagination.per_page || 50;
-            params.skip = pagination.page * perPage;
+            params.skip = (pagination.page || 0) * perPage;
             params.take = perPage;
         }
 
