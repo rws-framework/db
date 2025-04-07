@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { OpModelType } from '../models/_model';
+import { OpModelType } from '../models/interfaces/OpModelType';
 
 interface ITrackerOpts{
     required?: boolean,

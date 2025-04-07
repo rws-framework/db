@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client';
 import { Collection, Db, MongoClient } from 'mongodb';
 import {ITimeSeries} from '../types/ITimeSeries';
-import { IModel } from '../models/_model';
+import { IModel } from '../models/interfaces/IModel';
 import chalk from 'chalk';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
+import { IPaginationParams } from 'src/types/FindParams';
 
 interface IDBClientCreate {
   dbUrl?: string;
@@ -174,7 +175,12 @@ class DBService {
         return;
     }
 
-    async findBy(collection: string, conditions: any, fields: string[] | null = null, ordering: { [fieldName: string]: string } = null, allowRelations: boolean = true): Promise<IModel[]>
+    async findBy(
+        collection: string, 
+        conditions: any, 
+        fields: string[] | null = null, 
+        ordering: { [fieldName: string]: string } = null, 
+        pagination: IPaginationParams = null): Promise<IModel[]>
     {    
         const params: any ={ where: conditions };
 
@@ -187,6 +193,11 @@ class DBService {
 
         if(ordering){
             params.orderBy = ordering;
+        }
+
+        if(pagination){
+            params.skip = pagination.page * pagination.per_page;
+            params.take = pagination.per_page;
         }
 
         const retData = await this.getCollectionHandler(collection).findMany(params);        

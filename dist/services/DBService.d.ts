@@ -1,7 +1,8 @@
 import { Collection } from 'mongodb';
 import { ITimeSeries } from '../types/ITimeSeries';
-import { IModel } from '../models/_model';
+import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
+import { IPaginationParams } from 'src/types/FindParams';
 interface IDBClientCreate {
     dbUrl?: string;
     dbName?: string;
@@ -26,7 +27,7 @@ declare class DBService {
     delete(collection: string, conditions: any): Promise<void>;
     findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: {
         [fieldName: string]: string;
-    }, allowRelations?: boolean): Promise<IModel[]>;
+    }, pagination?: IPaginationParams): Promise<IModel[]>;
     collectionExists(collection_name: string): Promise<boolean>;
     createTimeSeriesCollection(collection_name: string): Promise<Collection<ITimeSeries>>;
     private getCollectionHandler;

@@ -1,4 +1,4 @@
-import { OpModelType } from "../models/_model";
+import { OpModelType } from "../models/interfaces/OpModelType";
 
 export interface IDbConfigParams {
     mongo_url?: string;

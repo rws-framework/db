@@ -1,71 +1,18 @@
-/**
- * @deprecated This file is deprecated. Import from 'models' directory instead.
- */
+import { IModel } from '../interfaces/IModel';
+import { IRWSModelServices } from '../interfaces/IRWSModelServices';
+import { OpModelType } from '../interfaces/OpModelType';
+import { TrackType, IMetaOpts } from '../../decorators';
+import { FieldsHelper } from '../../helper/FieldsHelper';
+import { FindByType, IPaginationParams } from '../../types/FindParams';
+import { RelationUtils } from '../utils/RelationUtils';
+import { PaginationUtils } from '../utils/PaginationUtils';
 
-import {
-    IModel,
-    IRWSModelServices,
-    OpModelType,
-    RelationBindType,
-    RelOneMetaType,
-    RelManyMetaType,
-    RWSModel,
-    TrackType,
-    IMetaOpts
-} from './index';
+import { TimeSeriesUtils } from '../utils/TimeSeriesUtils';
+import { ModelUtils } from '../utils/ModelUtils';
+import timeSeriesModel from './TimeSeriesModel';      
+import { DBService } from '../../services/DBService';
 
-export {
-    IModel,
-    IRWSModelServices,
-    OpModelType,
-    RelationBindType,
-    RelOneMetaType,
-    RelManyMetaType,
-    RWSModel,
-    TrackType,
-    IMetaOpts
-};
-<<<<<<< HEAD
-
-type RelOneMetaType<T extends IRWSModel> = {[key: string]: {required: boolean, key?: string, model: OpModelType<T>, hydrationField: string, foreignKey: string}};
-type RelManyMetaType<T extends IRWSModel> = {[key: string]: {key: string, inversionModel: OpModelType<T>, foreignKey: string}};
-
-export interface OpModelType<ChildClass> {
-    new(data?: any | null): ChildClass;
-    services: IRWSModelServices;
-    name: string 
-    _collection: string;
-    _RELATIONS: {[key: string]: boolean}
-    _CUT_KEYS: string[]
-    allModels: OpModelType<any>[];
-    loadModels: () => OpModelType<any>[];
-    checkForInclusionWithThrow: (className: string) => void;
-    checkForInclusion: (className: string) => boolean;
-    findOneBy<T extends RWSModel<T>>(
-        this: OpModelType<T>,
-        findParams: FindByType
-    ): Promise<T | null>;
-    find<T extends RWSModel<T>>(
-        this: OpModelType<T>,
-        id: string,        
-        findParams?: Omit<FindByType, 'conditions'>
-    ): Promise<T | null>;
-    findBy<T extends RWSModel<T>>(
-        this: OpModelType<T>,    
-        findParams: FindByType
-    ): Promise<T[]>;
-    delete<ChildClass extends RWSModel<ChildClass>>(
-        this: OpModelType<ChildClass>,
-        conditions: any
-    ): Promise<void>
-    create<T extends RWSModel<T>>(this: OpModelType<T>, data: T): Promise<T>;
-    getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
-    getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
-    getCollection(): string;
-    setServices(services: IRWSModelServices): void;    
-}
-
-class RWSModel<ChildClass> implements IModel{
+class RWSModel<ChildClass> implements IModel {
     static services: IRWSModelServices = {};
     
     [key: string]: any;
@@ -80,7 +27,6 @@ class RWSModel<ChildClass> implements IModel{
     constructor(data: any) {    
         if(!this.getCollection()){
             throw new Error('Model must have a collection defined');
-        
         }
 
         this.dbService = RWSModel.services.dbService;
@@ -97,31 +43,27 @@ class RWSModel<ChildClass> implements IModel{
         }
     }    
     
-    checkForInclusionWithThrow(): void
-    {
+    checkForInclusionWithThrow(): void {
         this.checkForInclusionWithThrow();
     }
 
-    static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void
-    {
+    static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void {
         if(!this.checkForInclusion(this.name)){
             throw new Error('Model undefined: ' + this.name);
         }
     }
 
-    checkForInclusion(): boolean    
-    {                
+    checkForInclusion(): boolean {                
         return this.checkForInclusion();        
     }
 
-    static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean
-    {        
+    static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean {        
         return this.loadModels().find((definedModel: OpModelType<any>) => {
             return definedModel.name === checkModelType;
         }) !== undefined;
     }
 
-    _fill(data: any): RWSModel<ChildClass>{
+    protected _fill(data: any): RWSModel<ChildClass> {
         for (const key in data) {
             if (data.hasOwnProperty(key)) {   
               
@@ -140,23 +82,17 @@ class RWSModel<ChildClass> implements IModel{
         return this;
     }
 
-    protected hasRelation(key: string): boolean
-    {
-        return !!this[key] && this[key] instanceof RWSModel;
+    protected hasRelation(key: string): boolean {
+        return RelationUtils.hasRelation(this, key);
     }
 
-    protected bindRelation(key: string, relatedModel: RWSModel<any>): RelationBindType
-    {        
-        return {
-            connect: {
-                id: relatedModel.id
-            }
-        };
+    protected bindRelation(key: string, relatedModel: RWSModel<any>): { connect: { id: string } } {        
+        return RelationUtils.bindRelation(relatedModel);
     }
 
     public async _asyncFill(data: any, fullDataMode = false, allowRelations = true): Promise<ChildClass> {
         const collections_to_models: {[key: string]: any} = {};           
-        const timeSeriesIds = this.getTimeSeriesModelFields();
+        const timeSeriesIds = TimeSeriesUtils.getTimeSeriesModelFields(this);
     
         const classFields = FieldsHelper.getAllClassFields(this.constructor);        
     
@@ -173,6 +109,7 @@ class RWSModel<ChildClass> implements IModel{
         const seriesHydrationfields: string[] = []; 
         
         if (allowRelations) {
+            // Handle many-to-many relations
             for (const key in relManyData) { 
                 if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
                     continue;
@@ -180,7 +117,7 @@ class RWSModel<ChildClass> implements IModel{
 
                 const relMeta = relManyData[key];  
         
-                const relationEnabled = this.checkRelEnabled(relMeta.key);
+                const relationEnabled = RelationUtils.checkRelEnabled(this, relMeta.key);
                 if (relationEnabled) {                                
                     this[relMeta.key] = await relMeta.inversionModel.findBy({
                         conditions: {
@@ -190,14 +127,15 @@ class RWSModel<ChildClass> implements IModel{
                     });    
                 }                                
             }
-  
+            
+            // Handle one-to-one relations
             for (const key in relOneData) {      
                 if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
                     continue;
                 }
 
                 const relMeta = relOneData[key];          
-                const relationEnabled = this.checkRelEnabled(relMeta.key);
+                const relationEnabled = RelationUtils.checkRelEnabled(this, relMeta.key);
                 
                 if(!data[relMeta.hydrationField] && relMeta.required){
                     throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`)
@@ -256,102 +194,33 @@ class RWSModel<ChildClass> implements IModel{
         return this as any as ChildClass;
     }    
 
-    private getModelScalarFields(model: OpModelType<any>): string[]
-    {
-        return FieldsHelper.getAllClassFields(model)
-                    .filter(item => item.indexOf('TrackType') === 0)
-                    .map(item => item.split(':').at(-1))
+    private getModelScalarFields(model: RWSModel<ChildClass>): string[] {
+        return ModelUtils.getModelScalarFields(model);
     }
 
-    private getTimeSeriesModelFields()
-    {
-        const timeSeriesIds: {[key: string]: {collection: string, hydrationField: string, ids: string[]}} = {};
-
-        for (const key in this as any) {
-            if (this.hasOwnProperty(key)) {             
-          
-                const meta = Reflect.getMetadata(`InverseTimeSeries:${key}`, (this as any));            
-                if(meta){
-                    if(!timeSeriesIds[key]){
-                        timeSeriesIds[key] = {
-                            collection: meta.timeSeriesModel,
-                            hydrationField: meta.hydrationField,
-                            ids: this[key]
-                        };
-                    }
-                }                         
-            }
-        } 
-
-        return timeSeriesIds;
-    }
-    
-    private async getRelationOneMeta(classFields: string[]): Promise<RelOneMetaType<RWSModel<any>>> {
-        return RWSModel.getRelationOneMeta(this, classFields);
+    private async getRelationOneMeta(classFields: string[]) {
+        return RelationUtils.getRelationOneMeta(this, classFields);
     }
 
-    static async getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<RWSModel<any>>>
-    {
-        const relIds: RelOneMetaType<RWSModel<any>> = {};
-        const relationFields = classFields
-            .filter((item: string) => item.indexOf('Relation') === 0 && !item.includes('Inverse'))
-            .map((item: string) => item.split(':').at(-1));        
-    
-        for (const key of relationFields) {  
-            const metadataKey = `Relation:${key}`;
-            const metadata = Reflect.getMetadata(metadataKey, model);                 
-            
-            if (metadata && metadata.promise) {
-                const resolvedMetadata = await metadata.promise;
-                if (!relIds[key]) {
-                    relIds[key] = {
-                        key: resolvedMetadata.key,
-                        required: resolvedMetadata.required,
-                        model: resolvedMetadata.relatedTo,
-                        hydrationField: resolvedMetadata.relationField,
-                        foreignKey: resolvedMetadata.relatedToField
-                    };
-                }
-            }                         
-        } 
-    
-        return relIds;
-    }    
-
-    private async getRelationManyMeta(classFields: string[]): Promise<RelManyMetaType<RWSModel<any>>> {
-        return RWSModel.getRelationManyMeta(this, classFields);
+    static async getRelationOneMeta(model: any, classFields: string[]) {
+        return RelationUtils.getRelationOneMeta(model, classFields);
     }
 
-    static async getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<RWSModel<any>>> 
-    {
-        const relIds: RelManyMetaType<RWSModel<any>> = {};
-    
-        const inverseFields = classFields
-            .filter((item: string) => item.indexOf('InverseRelation') === 0)
-            .map((item: string) => item.split(':').at(-1));
-                
-        for (const key of inverseFields) {          
-            const metadataKey = `InverseRelation:${key}`;
-            const metadata = Reflect.getMetadata(metadataKey, model);                            
-    
-            if (metadata && metadata.promise) {
-                const resolvedMetadata = await metadata.promise;
-                if (!relIds[key]) {
-                    relIds[key] = {       
-                        key: resolvedMetadata.key,         
-                        inversionModel: resolvedMetadata.inversionModel,
-                        foreignKey: resolvedMetadata.foreignKey                   
-                    };
-                }
-            }                         
-        } 
-    
-        return relIds;
+    private async getRelationManyMeta(classFields: string[]) {
+        return RelationUtils.getRelationManyMeta(this, classFields);
+    }
+
+    static async getRelationManyMeta(model: any, classFields: string[]) {
+        return RelationUtils.getRelationManyMeta(model, classFields);
+    }
+
+    static paginate<ChildClass extends RWSModel<ChildClass>>(this: OpModelType<any>,pageParams: IPaginationParams, findParams?: FindByType): Promise<RWSModel<ChildClass>[]> {
+        return PaginationUtils.paginate.bind(this)(pageParams, findParams);
     }
 
     public async toMongo(): Promise<any> {
         const data: any = {};
-        const timeSeriesIds = this.getTimeSeriesModelFields();
+        const timeSeriesIds = TimeSeriesUtils.getTimeSeriesModelFields(this);
         const timeSeriesHydrationFields: string[] = [];
       
         for (const key in (this as any)) { 
@@ -392,7 +261,6 @@ class RWSModel<ChildClass> implements IModel{
         return (this as any).constructor._collection || this._collection;
     }
 
-
     async save(): Promise<this> {
         const data = await this.toMongo();
         let updatedModelData = data;         
@@ -406,8 +274,7 @@ class RWSModel<ChildClass> implements IModel{
         } else {
             this.preCreate();      
       
-            const timeSeriesModel = await import('./TimeSeriesModel');      
-            const isTimeSeries = this instanceof timeSeriesModel.default;
+            const isTimeSeries = this instanceof timeSeriesModel;
 
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);      
 
@@ -420,109 +287,46 @@ class RWSModel<ChildClass> implements IModel{
     }
 
     static async getModelAnnotations<T extends unknown>(constructor: new () => T): Promise<Record<string, {annotationType: string, metadata: any}>> {    
-        const annotationsData: Record<string, {annotationType: string, metadata: any}> = {};
-    
-        const metadataKeys = Reflect.getMetadataKeys(constructor.prototype);
-        
-        // Process all metadata keys and collect promises
-        const metadataPromises = metadataKeys.map(async (fullKey: string) => {
-            const [annotationType, propertyKey] = fullKey.split(':');
-            const metadata = Reflect.getMetadata(fullKey, constructor.prototype);
-    
-            if (metadata) {
-                // If this is a relation metadata with a promise
-                if (metadata.promise && (annotationType === 'Relation' || annotationType === 'InverseRelation')) {
-                    const resolvedMetadata = await metadata.promise;
-                    annotationsData[propertyKey] = {
-                        annotationType,
-                        metadata: resolvedMetadata
-                    };
-                } else {
-                    // Handle non-relation metadata as before
-                    const key = metadata.key || propertyKey;
-                    annotationsData[key] = {
-                        annotationType,
-                        metadata
-                    };
-                }
-            }
-        });
-    
-        // Wait for all metadata to be processed
-        await Promise.all(metadataPromises);
-        
-        return annotationsData;
+        return ModelUtils.getModelAnnotations(constructor);
     }
 
-    public preUpdate(): void
-    {
+    public preUpdate(): void {
         return;
     }
 
-    public postUpdate(): void
-    {
+    public postUpdate(): void {
         return;
     }
 
-    public preCreate(): void
-    {
+    public preCreate(): void {
         return;
     }
 
-    public postCreate(): void
-    {
+    public postCreate(): void {
         return;
     }
 
     public static isSubclass<T extends RWSModel<T>, C extends new () => T>(constructor: C, baseClass: new () => T): boolean {
-        return baseClass.prototype.isPrototypeOf(constructor.prototype);
+        return ModelUtils.isSubclass(constructor, baseClass);
     }
 
-    hasTimeSeries(): boolean 
-    {
-        return RWSModel.checkTimeSeries((this as any).constructor);
+    hasTimeSeries(): boolean {
+        return TimeSeriesUtils.checkTimeSeries((this as any).constructor);
     }
 
-    static checkTimeSeries(constructor: any): boolean
-    {            
-        const data = constructor.prototype as any;
-
-        for (const key in data) {
-
-            if (data.hasOwnProperty(key)) {   
-
-                if(Reflect.getMetadata(`InverseTimeSeries:${key}`, constructor.prototype)){
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    static checkTimeSeries(constructor: any): boolean {
+        return TimeSeriesUtils.checkTimeSeries(constructor);
     }
 
-    async isDbVariable(variable: string): Promise<boolean> 
-    {
-        return RWSModel.checkDbVariable((this as any).constructor, variable);
+    async isDbVariable(variable: string): Promise<boolean> {
+        return ModelUtils.checkDbVariable((this as any).constructor, variable);
     }
 
-    static async checkDbVariable(constructor: any, variable: string): Promise<boolean> {                   
-        if(variable === 'id'){
-            return true;
-        }
-        
-        const dbAnnotations = await RWSModel.getModelAnnotations(constructor);
-        type AnnotationType = { annotationType: string, key: string };
-    
-        const dbProperties: string[] = Object.keys(dbAnnotations)
-            .map((key: string): AnnotationType => {return {...dbAnnotations[key], key};})
-            .filter((element: AnnotationType) => element.annotationType === 'TrackType' )
-            .map((element: AnnotationType) => element.key);
-    
-        return dbProperties.includes(variable);
+    static async checkDbVariable(constructor: any, variable: string): Promise<boolean> {
+        return ModelUtils.checkDbVariable(constructor, variable);
     }
 
-    sanitizeDBData(data: any): any
-    {
+    sanitizeDBData(data: any): any {
         const dataKeys = Object.keys(data);
         const sanitizedData: {[key: string]: any} = {};
 
@@ -605,7 +409,7 @@ class RWSModel<ChildClass> implements IModel{
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
         try {
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, allowRelations);   
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering);   
             if (dbData.length) {
                 const instanced: ChildClass[] = [];
         
@@ -642,7 +446,6 @@ class RWSModel<ChildClass> implements IModel{
         });  
     }    
     
-
     static async create<T extends RWSModel<T>>(this: new () => T, data: any): Promise<T> {
         const newModel = new this();
 
@@ -653,29 +456,27 @@ class RWSModel<ChildClass> implements IModel{
         return newModel;
     }
 
-    static loadModels(): OpModelType<any>[]
-    {                        
+    static loadModels(): OpModelType<any>[] {                        
         return this.allModels || [];
     }
 
-    loadModels(): OpModelType<any>[]
-    {             
+    loadModels(): OpModelType<any>[] {             
         return RWSModel.loadModels();
     }
 
-    private checkRelEnabled(key: string): boolean 
-    {
-        return Object.keys((this as any).constructor._RELATIONS).includes(key) && (this as any).constructor._RELATIONS[key] === true
+    private checkRelEnabled(key: string): boolean {
+        return RelationUtils.checkRelEnabled(this, key);
     }
 
     public static setServices(services: IRWSModelServices){
         this.allModels = services.configService.get('db_models');  
         this.services = services;
     }
+
+    public getDb(): DBService
+    {
+        return this.services.dbService;
+    }
 }
 
-export { IModel, TrackType, IMetaOpts, RWSModel };
-
-
-=======
->>>>>>> 7c50786 (v2.2.0)
+export { RWSModel };

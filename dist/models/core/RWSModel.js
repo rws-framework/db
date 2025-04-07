@@ -1,13 +1,25 @@
 "use strict";
-/**
- * @deprecated This file is deprecated. Import from 'models' directory instead.
- */
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-<<<<<<< HEAD
-exports.RWSModel = exports.TrackType = void 0;
-const decorators_1 = require("../decorators");
-Object.defineProperty(exports, "TrackType", { enumerable: true, get: function () { return decorators_1.TrackType; } });
-const FieldsHelper_1 = require("../helper/FieldsHelper");
+exports.RWSModel = void 0;
+const decorators_1 = require("../../decorators");
+const FieldsHelper_1 = require("../../helper/FieldsHelper");
+const RelationUtils_1 = require("../utils/RelationUtils");
+const PaginationUtils_1 = require("../utils/PaginationUtils");
+const TimeSeriesUtils_1 = require("../utils/TimeSeriesUtils");
+const ModelUtils_1 = require("../utils/ModelUtils");
+const TimeSeriesModel_1 = __importDefault(require("./TimeSeriesModel"));
 class RWSModel {
     constructor(data) {
         if (!this.getCollection()) {
@@ -58,18 +70,14 @@ class RWSModel {
         return this;
     }
     hasRelation(key) {
-        return !!this[key] && this[key] instanceof RWSModel;
+        return RelationUtils_1.RelationUtils.hasRelation(this, key);
     }
     bindRelation(key, relatedModel) {
-        return {
-            connect: {
-                id: relatedModel.id
-            }
-        };
+        return RelationUtils_1.RelationUtils.bindRelation(relatedModel);
     }
     async _asyncFill(data, fullDataMode = false, allowRelations = true) {
         const collections_to_models = {};
-        const timeSeriesIds = this.getTimeSeriesModelFields();
+        const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(this);
         const classFields = FieldsHelper_1.FieldsHelper.getAllClassFields(this.constructor);
         // Get both relation metadata types asynchronously
         const [relOneData, relManyData] = await Promise.all([
@@ -81,12 +89,13 @@ class RWSModel {
         });
         const seriesHydrationfields = [];
         if (allowRelations) {
+            // Handle many-to-many relations
             for (const key in relManyData) {
                 if (!fullDataMode && this.constructor._CUT_KEYS.includes(key)) {
                     continue;
                 }
                 const relMeta = relManyData[key];
-                const relationEnabled = this.checkRelEnabled(relMeta.key);
+                const relationEnabled = RelationUtils_1.RelationUtils.checkRelEnabled(this, relMeta.key);
                 if (relationEnabled) {
                     this[relMeta.key] = await relMeta.inversionModel.findBy({
                         conditions: {
@@ -96,12 +105,13 @@ class RWSModel {
                     });
                 }
             }
+            // Handle one-to-one relations
             for (const key in relOneData) {
                 if (!fullDataMode && this.constructor._CUT_KEYS.includes(key)) {
                     continue;
                 }
                 const relMeta = relOneData[key];
-                const relationEnabled = this.checkRelEnabled(relMeta.key);
+                const relationEnabled = RelationUtils_1.RelationUtils.checkRelEnabled(this, relMeta.key);
                 if (!data[relMeta.hydrationField] && relMeta.required) {
                     throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`);
                 }
@@ -148,81 +158,26 @@ class RWSModel {
         return this;
     }
     getModelScalarFields(model) {
-        return FieldsHelper_1.FieldsHelper.getAllClassFields(model)
-            .filter(item => item.indexOf('TrackType') === 0)
-            .map(item => item.split(':').at(-1));
-    }
-    getTimeSeriesModelFields() {
-        const timeSeriesIds = {};
-        for (const key in this) {
-            if (this.hasOwnProperty(key)) {
-                const meta = Reflect.getMetadata(`InverseTimeSeries:${key}`, this);
-                if (meta) {
-                    if (!timeSeriesIds[key]) {
-                        timeSeriesIds[key] = {
-                            collection: meta.timeSeriesModel,
-                            hydrationField: meta.hydrationField,
-                            ids: this[key]
-                        };
-                    }
-                }
-            }
-        }
-        return timeSeriesIds;
+        return ModelUtils_1.ModelUtils.getModelScalarFields(model);
     }
     async getRelationOneMeta(classFields) {
-        return RWSModel.getRelationOneMeta(this, classFields);
+        return RelationUtils_1.RelationUtils.getRelationOneMeta(this, classFields);
     }
     static async getRelationOneMeta(model, classFields) {
-        const relIds = {};
-        const relationFields = classFields
-            .filter((item) => item.indexOf('Relation') === 0 && !item.includes('Inverse'))
-            .map((item) => item.split(':').at(-1));
-        for (const key of relationFields) {
-            const metadataKey = `Relation:${key}`;
-            const metadata = Reflect.getMetadata(metadataKey, model);
-            if (metadata && metadata.promise) {
-                const resolvedMetadata = await metadata.promise;
-                if (!relIds[key]) {
-                    relIds[key] = {
-                        key: resolvedMetadata.key,
-                        required: resolvedMetadata.required,
-                        model: resolvedMetadata.relatedTo,
-                        hydrationField: resolvedMetadata.relationField,
-                        foreignKey: resolvedMetadata.relatedToField
-                    };
-                }
-            }
-        }
-        return relIds;
+        return RelationUtils_1.RelationUtils.getRelationOneMeta(model, classFields);
     }
     async getRelationManyMeta(classFields) {
-        return RWSModel.getRelationManyMeta(this, classFields);
+        return RelationUtils_1.RelationUtils.getRelationManyMeta(this, classFields);
     }
     static async getRelationManyMeta(model, classFields) {
-        const relIds = {};
-        const inverseFields = classFields
-            .filter((item) => item.indexOf('InverseRelation') === 0)
-            .map((item) => item.split(':').at(-1));
-        for (const key of inverseFields) {
-            const metadataKey = `InverseRelation:${key}`;
-            const metadata = Reflect.getMetadata(metadataKey, model);
-            if (metadata && metadata.promise) {
-                const resolvedMetadata = await metadata.promise;
-                if (!relIds[key]) {
-                    relIds[key] = {
-                        key: resolvedMetadata.key,
-                        inversionModel: resolvedMetadata.inversionModel,
-                        foreignKey: resolvedMetadata.foreignKey
-                    };
-                }
-            }
-        }
-        return relIds;
+        return RelationUtils_1.RelationUtils.getRelationManyMeta(model, classFields);
+    }
+    static paginate(pageParams, findParams) {
+        return PaginationUtils_1.PaginationUtils.paginate.bind(this)(pageParams, findParams);
     }
     async toMongo() {
         const data = {};
-        const timeSeriesIds = this.getTimeSeriesModelFields();
+        const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(this);
         const timeSeriesHydrationFields = [];
         for (const key in this) {
             if (this.hasRelation(key)) {
@@ -263,8 +218,7 @@ class RWSModel {
         }
         else {
             this.preCreate();
-            const timeSeriesModel = await Promise.resolve().then(() => __importStar(require('./TimeSeriesModel')));
-            const isTimeSeries = this instanceof timeSeriesModel.default;
+            const isTimeSeries = this instanceof TimeSeriesModel_1.default;
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);
             await this._asyncFill(updatedModelData);
             this.postCreate();
@@ -272,34 +226,7 @@ class RWSModel {
         return this;
     }
     static async getModelAnnotations(constructor) {
-        const annotationsData = {};
-        const metadataKeys = Reflect.getMetadataKeys(constructor.prototype);
-        // Process all metadata keys and collect promises
-        const metadataPromises = metadataKeys.map(async (fullKey) => {
-            const [annotationType, propertyKey] = fullKey.split(':');
-            const metadata = Reflect.getMetadata(fullKey, constructor.prototype);
-            if (metadata) {
-                // If this is a relation metadata with a promise
-                if (metadata.promise && (annotationType === 'Relation' || annotationType === 'InverseRelation')) {
-                    const resolvedMetadata = await metadata.promise;
-                    annotationsData[propertyKey] = {
-                        annotationType,
-                        metadata: resolvedMetadata
-                    };
-                }
-                else {
-                    // Handle non-relation metadata as before
-                    const key = metadata.key || propertyKey;
-                    annotationsData[key] = {
-                        annotationType,
-                        metadata
-                    };
-                }
-            }
-        });
-        // Wait for all metadata to be processed
-        await Promise.all(metadataPromises);
-        return annotationsData;
+        return ModelUtils_1.ModelUtils.getModelAnnotations(constructor);
     }
     preUpdate() {
         return;
@@ -314,35 +241,19 @@ class RWSModel {
         return;
     }
     static isSubclass(constructor, baseClass) {
-        return baseClass.prototype.isPrototypeOf(constructor.prototype);
+        return ModelUtils_1.ModelUtils.isSubclass(constructor, baseClass);
     }
     hasTimeSeries() {
-        return RWSModel.checkTimeSeries(this.constructor);
+        return TimeSeriesUtils_1.TimeSeriesUtils.checkTimeSeries(this.constructor);
     }
     static checkTimeSeries(constructor) {
-        const data = constructor.prototype;
-        for (const key in data) {
-            if (data.hasOwnProperty(key)) {
-                if (Reflect.getMetadata(`InverseTimeSeries:${key}`, constructor.prototype)) {
-                    return true;
-                }
-            }
-        }
-        return false;
+        return TimeSeriesUtils_1.TimeSeriesUtils.checkTimeSeries(constructor);
     }
     async isDbVariable(variable) {
-        return RWSModel.checkDbVariable(this.constructor, variable);
+        return ModelUtils_1.ModelUtils.checkDbVariable(this.constructor, variable);
     }
     static async checkDbVariable(constructor, variable) {
-        if (variable === 'id') {
-            return true;
-        }
-        const dbAnnotations = await RWSModel.getModelAnnotations(constructor);
-        const dbProperties = Object.keys(dbAnnotations)
-            .map((key) => { return { ...dbAnnotations[key], key }; })
-            .filter((element) => element.annotationType === 'TrackType')
-            .map((element) => element.key);
-        return dbProperties.includes(variable);
+        return ModelUtils_1.ModelUtils.checkDbVariable(constructor, variable);
     }
     sanitizeDBData(data) {
         const dataKeys = Object.keys(data);
@@ -400,7 +311,7 @@ class RWSModel {
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
         try {
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, allowRelations);
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering);
             if (dbData.length) {
                 const instanced = [];
                 for (const data of dbData) {
@@ -441,11 +352,14 @@ class RWSModel {
         return RWSModel.loadModels();
     }
     checkRelEnabled(key) {
-        return Object.keys(this.constructor._RELATIONS).includes(key) && this.constructor._RELATIONS[key] === true;
+        return RelationUtils_1.RelationUtils.checkRelEnabled(this, key);
     }
     static setServices(services) {
         this.allModels = services.configService.get('db_models');
         this.services = services;
+    }
+    getDb() {
+        return this.services.dbService;
     }
 }
 exports.RWSModel = RWSModel;
@@ -459,9 +373,3 @@ __decorate([
     (0, decorators_1.TrackType)(String),
     __metadata("design:type", String)
 ], RWSModel.prototype, "id", void 0);
-=======
-exports.TrackType = exports.RWSModel = void 0;
-const index_1 = require("./index");
-Object.defineProperty(exports, "RWSModel", { enumerable: true, get: function () { return index_1.RWSModel; } });
-Object.defineProperty(exports, "TrackType", { enumerable: true, get: function () { return index_1.TrackType; } });
->>>>>>> 7c50786 (v2.2.0)
