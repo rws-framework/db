@@ -361,6 +361,9 @@ class RWSModel {
     getDb() {
         return this.services.dbService;
     }
+    static getDb() {
+        return this.services.dbService;
+    }
 }
 exports.RWSModel = RWSModel;
 RWSModel.services = {};

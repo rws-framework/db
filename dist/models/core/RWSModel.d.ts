@@ -61,5 +61,6 @@ declare class RWSModel<ChildClass> implements IModel {
     private checkRelEnabled;
     static setServices(services: IRWSModelServices): void;
     getDb(): DBService;
+    static getDb(): DBService;
 }
 export { RWSModel };

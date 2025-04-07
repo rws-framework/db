@@ -477,6 +477,11 @@ class RWSModel<ChildClass> implements IModel {
     {
         return this.services.dbService;
     }
+
+    public static getDb(): DBService
+    {
+        return this.services.dbService;
+    }
 }
 
 export { RWSModel };
