@@ -127,7 +127,7 @@ class DBService {
         await this.getCollectionHandler(collection).deleteMany({ where: conditions });
         return;
     }
-    async findBy(collection, conditions, fields = null, ordering = null, allowRelations = true) {
+    async findBy(collection, conditions, fields = null, ordering = null, pagination = null) {
         const params = { where: conditions };
         if (fields) {
             params.select = {};
@@ -137,6 +137,10 @@ class DBService {
         }
         if (ordering) {
             params.orderBy = ordering;
+        }
+        if (pagination) {
+            params.skip = pagination.page * pagination.per_page;
+            params.take = pagination.per_page;
         }
         const retData = await this.getCollectionHandler(collection).findMany(params);
         return retData;
