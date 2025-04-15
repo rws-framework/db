@@ -1,4 +1,4 @@
-import { Collection } from 'mongodb';
+import { Collection, MongoClient } from 'mongodb';
 import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
@@ -15,6 +15,7 @@ declare class DBService {
     constructor(configService: IDbConfigHandler);
     private connectToDB;
     reconnect(opts?: IDBClientCreate): void;
+    static baseClientConstruct(dbUrl: string): MongoClient;
     private createBaseMongoClient;
     private createBaseMongoClientDB;
     cloneDatabase(source: string, target: string): Promise<void>;

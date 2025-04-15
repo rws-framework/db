@@ -56,10 +56,17 @@ class DBService {
         this.connectToDB(opts);
     }
 
+    static baseClientConstruct(dbUrl: string): MongoClient
+    {        
+        const client = new MongoClient(dbUrl);
+
+        return client;
+    }
+
     private async createBaseMongoClient(): Promise<MongoClient>
     {
         const dbUrl = this.opts?.dbUrl || this.configService.get('mongo_url');
-        const client = new MongoClient(dbUrl);
+        const client = DBService.baseClientConstruct(dbUrl);
     
         await client.connect();
 
@@ -70,7 +77,7 @@ class DBService {
     private async createBaseMongoClientDB(): Promise<Db>
     {
         const dbName = this.opts?.dbName || this.configService.get('mongo_db');
-        const client = await this. createBaseMongoClient();
+        const client = await this.createBaseMongoClient();
         return client.db(dbName);
     }
 
