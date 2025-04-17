@@ -92,7 +92,7 @@ export class DbHelper {
      
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;            
-            const requiredString = modelMetadata.required ? '' : '?';  
+            let requiredString = modelMetadata.required ? '' : '?';  
             const annotationType: string = modelMetadatas[key].annotationType;
     
             if(key === 'id'){
@@ -131,7 +131,10 @@ export class DbHelper {
             } else if (annotationType === 'InverseTimeSeries'){        
                 section += `\t${key} String[] @db.ObjectId\n`;      
             } else if (annotationType === 'TrackType'){        
-                const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);          
+                const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);   
+                if(modelMetadata.isArray || modelMetadata.type.name === 'Array'){
+                    requiredString = '';
+                }       
                 section += `\t${key} ${DbHelper.toConfigCase(modelMetadata)}${requiredString} ${tags.join(' ')}\n`;
             }
         }
@@ -140,29 +143,34 @@ export class DbHelper {
         return section;
     }
     
-    static toConfigCase(modelType: any): string {
+    static toConfigCase(modelType: IMetaOpts): string {
         const type = modelType.type;
-        const input = type.name;  
+        let input = type.name;        
     
         if(input == 'Number'){
-            return 'Int';
+            input = 'Int';
         }
     
         if(input == 'Object'){
-            return 'Json';
+            input = 'Json';
         }
     
         if(input == 'Date'){
-            return 'DateTime';
+            input = 'DateTime';
         }
 
         if(input == 'Array'){
-            return 'Json';
+            input = 'Json[]';
         }
-    
     
         const firstChar = input.charAt(0).toUpperCase();
         const restOfString = input.slice(1);
-        return firstChar + restOfString;
+        let resultField = firstChar + restOfString;
+
+        if(modelType.isArray){
+            resultField += '[]';
+        }
+
+        return resultField;
     }
 }

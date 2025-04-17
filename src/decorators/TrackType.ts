@@ -3,7 +3,8 @@ import { OpModelType } from '../models/interfaces/OpModelType';
 
 interface ITrackerOpts{
     required?: boolean,
-    relationField?: string
+    isArray?: boolean,
+    relationField?: string,
     relatedToField?: string,
     relatedTo?: OpModelType<any>,
     inversionModel?: OpModelType<any>,
@@ -12,19 +13,25 @@ interface ITrackerOpts{
   
   interface IMetaOpts extends ITrackerOpts{
     type: any,
-    tags: string[]
+    tags: string[],
+    required: boolean,
+    isArray: boolean
   }
   
 function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] = []) {
     if(!opts){
         opts = {
-            required: false
+            required: false,
+            isArray: false
         };
+    }else if(opts?.isArray){
+        opts.isArray = false;
     }
   
     const required = opts.required;
+    const isArray = opts.isArray;
   
-    const metaOpts: IMetaOpts = {type, tags, required};
+    const metaOpts: IMetaOpts = {type, tags, required, isArray};
   
     if(opts.relatedToField && opts.relatedTo){
         metaOpts.relatedToField = opts.relatedToField;      

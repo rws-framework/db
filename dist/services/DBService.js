@@ -60,7 +60,7 @@ class DBService {
         var _a;
         const dbName = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbName) || this.configService.get('mongo_db');
         const client = await this.createBaseMongoClient();
-        return client.db(dbName);
+        return [client, client.db(dbName)];
     }
     async cloneDatabase(source, target) {
         const client = await this.createBaseMongoClient();
@@ -77,7 +77,7 @@ class DBService {
         await client.close();
     }
     async watchCollection(collectionName, preRun) {
-        const db = await this.createBaseMongoClientDB();
+        const [client, db] = await this.createBaseMongoClientDB();
         const collection = db.collection(collectionName);
         const changeStream = collection.watch();
         return new Promise((resolve) => {
@@ -91,7 +91,7 @@ class DBService {
         let result = data;
         // Insert time-series data outside of the transaction
         if (isTimeSeries) {
-            const db = await this.createBaseMongoClientDB();
+            const [client, db] = await this.createBaseMongoClientDB();
             const collectionHandler = db.collection(collection);
             const insert = await collectionHandler.insertOne(data);
             result = await this.findOneBy(collection, { id: insert.insertedId.toString() });
@@ -168,7 +168,7 @@ class DBService {
     }
     async createTimeSeriesCollection(collection_name) {
         try {
-            const db = await this.createBaseMongoClientDB();
+            const [client, db] = await this.createBaseMongoClientDB();
             // Create a time series collection
             const options = {
                 timeseries: {

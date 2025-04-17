@@ -4,11 +4,16 @@ require("reflect-metadata");
 function TrackType(type, opts = null, tags = []) {
     if (!opts) {
         opts = {
-            required: false
+            required: false,
+            isArray: false
         };
     }
+    else if (opts === null || opts === void 0 ? void 0 : opts.isArray) {
+        opts.isArray = false;
+    }
     const required = opts.required;
-    const metaOpts = { type, tags, required };
+    const isArray = opts.isArray;
+    const metaOpts = { type, tags, required, isArray };
     if (opts.relatedToField && opts.relatedTo) {
         metaOpts.relatedToField = opts.relatedToField;
         metaOpts.relatedTo = opts.relatedTo;

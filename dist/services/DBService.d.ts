@@ -1,4 +1,4 @@
-import { Collection, MongoClient } from 'mongodb';
+import { Collection, Db, MongoClient } from 'mongodb';
 import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
@@ -16,8 +16,8 @@ declare class DBService {
     private connectToDB;
     reconnect(opts?: IDBClientCreate): void;
     static baseClientConstruct(dbUrl: string): MongoClient;
-    private createBaseMongoClient;
-    private createBaseMongoClientDB;
+    createBaseMongoClient(): Promise<MongoClient>;
+    createBaseMongoClientDB(): Promise<[MongoClient, Db]>;
     cloneDatabase(source: string, target: string): Promise<void>;
     watchCollection(collectionName: string, preRun: () => void): Promise<any>;
     insert(data: any, collection: string, isTimeSeries?: boolean): Promise<any>;
