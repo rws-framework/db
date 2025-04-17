@@ -24,7 +24,13 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
             required: false,
             isArray: false
         };
-    }else if(opts?.isArray){
+    }
+    
+    if(!opts?.required){
+        opts.required = false;
+    }
+
+    if(!opts?.isArray){
         opts.isArray = false;
     }
   

@@ -131,7 +131,8 @@ export class DbHelper {
             } else if (annotationType === 'InverseTimeSeries'){        
                 section += `\t${key} String[] @db.ObjectId\n`;      
             } else if (annotationType === 'TrackType'){        
-                const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);   
+                const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);             
+
                 if(modelMetadata.isArray || modelMetadata.type.name === 'Array'){
                     requiredString = '';
                 }       
@@ -145,7 +146,8 @@ export class DbHelper {
     
     static toConfigCase(modelType: IMetaOpts): string {
         const type = modelType.type;
-        let input = type.name;        
+        let input = type.name;    
+        
     
         if(input == 'Number'){
             input = 'Int';
