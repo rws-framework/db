@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import path from 'path';
 import fs from 'fs';
 
-import { IDbConfigHandler } from '../types/DbConfigHandler';
+import { IDbConfigHandler, IDbConfigParams, IdGeneratorOptions } from '../types/DbConfigHandler';
 import { IMetaOpts, OpModelType, RWSModel } from '../models/_model';
 // import TimeSeriesModel from '../models/core/TimeSeriesModel';
 import { DBService } from '../services/DBService';
@@ -15,6 +15,8 @@ const workspaceRoot = rwsPath.findRootWorkspacePath();
 const moduleDir = path.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
 
 export class DbHelper {
+    static dbUrlVarName: string = 'PRISMA_DB_URL';
+
     static async installPrisma(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void>
     {
         const dbUrl = configService.get('db_url');      
@@ -26,7 +28,7 @@ export class DbHelper {
 
         template += `\ndatasource db {\n
         provider = "${dbType}"\n
-        url = env("PRISMA_DB_URL")\n
+        url = env("${this.dbUrlVarName}")\n
     }\n\n`;
 
         const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');       
@@ -34,7 +36,7 @@ export class DbHelper {
         if(dbModels){
 
             for (const model of dbModels){ 
-                const modelSection = await DbHelper.generateModelSections(model);
+                const modelSection = await DbHelper.generateModelSections(model, configService);
 
                 template += '\n\n' + modelSection;  
 
@@ -65,12 +67,25 @@ export class DbHelper {
             }            
 
             fs.writeFileSync(schemaPath, template);  
-            process.env.DB_URL = dbUrl;
-            const endPrisma = 'npx prisma';
-
-            // console.log({cwd: process.cwd()})
-            // const clientPath = path.join(rwsPath.findRootWorkspacePath(), 'node_modules', '.prisma', 'client');
-            await rwsShell.runCommand(`${endPrisma} generate --schema=${schemaPath}`, process.cwd());  
+            process.env = { ...process.env, [this.dbUrlVarName]: dbUrl }
+            
+            // Use npx directly with the full path to prisma
+            const npxPath = path.join(workspaceRoot, 'node_modules', '.bin', 'npx');
+            const prismaPath = path.join(workspaceRoot, 'node_modules', '.bin', 'prisma');
+            
+            try {
+                // Try using npx with the full path
+                await rwsShell.runCommand(`"${npxPath}" prisma generate --schema="${schemaPath}"`, process.cwd());
+            } catch (error) {
+                // If that fails, try using the prisma binary directly
+                try {
+                    await rwsShell.runCommand(`"${prismaPath}" generate --schema="${schemaPath}"`, process.cwd());
+                } catch (innerError) {
+                    // If both fail, try using node to run prisma
+                    const nodePrismaPath = path.join(workspaceRoot, 'node_modules', 'prisma', 'build', 'index.js');
+                    await rwsShell.runCommand(`node "${nodePrismaPath}" generate --schema="${schemaPath}"`, process.cwd());
+                }
+            }
 
             leaveFile = false;
             log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
@@ -81,14 +96,64 @@ export class DbHelper {
         }
     }
 
-    static async generateModelSections(model: OpModelType<any>): Promise<string> {
+    static generateId(
+        dbType: IDbConfigParams['db_type'], 
+        options: IdGeneratorOptions = {}
+    ): string {
+        const { useUuid = false, customType } = options;
+    
+        if (customType) {
+            return `id ${customType} @id`;
+        }
+    
+        switch(dbType) {
+            case 'mongodb':
+                return 'id String @id @default(auto()) @map("_id") @db.ObjectId';
+                
+            case 'mysql':
+                return useUuid 
+                    ? 'id String @id @default(uuid())'
+                    : 'id Int @id @default(autoincrement())';
+                
+            case 'sqlite':
+                return 'id Int @id @default(autoincrement())';
+                
+            default:
+                throw new Error('Kurwa, nieobsługiwany typ bazy danych!');
+        }
+    }
+
+    static detectInstaller(): string
+    {
+        
+        if (fs.existsSync(path.join(workspaceRoot, 'yarn.lock'))){                
+            return 'yarn';
+        }
+
+        return 'npx';
+    }
+
+    static async pushDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile = false){
+        process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') }
+        const schemaDir = path.join(moduleDir, 'prisma');
+        const schemaPath = path.join(schemaDir, 'schema.prisma');
+        
+        // Use npx directly with the full path to prisma
+        const execCmdPath = path.join(workspaceRoot, 'node_modules', '.bin', 'yarn.cmd');
+        const execPrismaPath = path.join(workspaceRoot, 'node_modules', '.bin', 'yarn.cmd');
+        
+        await rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema="${schemaPath}"`, process.cwd());
+
+    }
+
+    static async generateModelSections(model: OpModelType<any>, configService: IDbConfigHandler): Promise<string> {
         let section = '';
         const modelMetadatas: Record<string, {annotationType: string, metadata: any}> = await RWSModel.getModelAnnotations(model);    
     
         const modelName: string = (model as any)._collection;
         
         section += `model ${modelName} {\n`;
-        section += '\tid String @map("_id") @id @default(auto()) @db.ObjectId\n';
+        section += `\t${this.generateId(configService.get('db_type'))}\n`;
      
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;            

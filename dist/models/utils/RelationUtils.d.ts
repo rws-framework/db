@@ -6,7 +6,7 @@ export declare class RelationUtils {
     static getRelationManyMeta(model: RWSModel<any>, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
     static bindRelation(relatedModel: RWSModel<any>): {
         connect: {
-            id: string;
+            id: string | number;
         };
     };
     static hasRelation(model: RWSModel<any>, key: string): boolean;

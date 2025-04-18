@@ -6,13 +6,13 @@ import { DBService } from '../../services/DBService';
 declare class RWSModel<T> implements IModel {
     static services: IRWSModelServices;
     [key: string]: any;
-    id: string;
+    id: string | number;
     static _collection: string;
     static _RELATIONS: {};
     static _BANNED_KEYS: string[];
     static allModels: OpModelType<any>[];
     static _CUT_KEYS: string[];
-    constructor(data: any);
+    constructor(data?: any);
     checkForInclusionWithThrow(): void;
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void;
     checkForInclusion(): boolean;
@@ -21,7 +21,7 @@ declare class RWSModel<T> implements IModel {
     protected hasRelation(key: string): boolean;
     protected bindRelation(key: string, relatedModel: RWSModel<any>): {
         connect: {
-            id: string;
+            id: string | number;
         };
     };
     _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean): Promise<T>;

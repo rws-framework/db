@@ -16,14 +16,14 @@ class RWSModel<T> implements IModel {
     
     [key: string]: any;
     @TrackType(String)
-    id: string;
+    id: string | number;
     static _collection: string = null;
     static _RELATIONS = {};
     static _BANNED_KEYS = ['_collection'];
     static allModels: OpModelType<any>[] = [];
     static _CUT_KEYS: string[] = [];
 
-    constructor(data: any) {    
+    constructor(data: any = null) {    
         if(!this.getCollection()){
             throw new Error('Model must have a collection defined');
         }
@@ -89,7 +89,7 @@ class RWSModel<T> implements IModel {
         return RelationUtils.hasRelation(this, key);
     }
 
-    protected bindRelation(key: string, relatedModel: RWSModel<any>): { connect: { id: string } } {        
+    protected bindRelation(key: string, relatedModel: RWSModel<any>): { connect: { id: string | number } } {        
         return RelationUtils.bindRelation(relatedModel);
     }
 

@@ -16,7 +16,7 @@ const RelationUtils_1 = require("../utils/RelationUtils");
 const TimeSeriesUtils_1 = require("../utils/TimeSeriesUtils");
 const ModelUtils_1 = require("../utils/ModelUtils");
 class RWSModel {
-    constructor(data) {
+    constructor(data = null) {
         if (!this.getCollection()) {
             throw new Error('Model must have a collection defined');
         }
@@ -396,5 +396,5 @@ RWSModel.allModels = [];
 RWSModel._CUT_KEYS = [];
 __decorate([
     (0, decorators_1.TrackType)(String),
-    __metadata("design:type", String)
+    __metadata("design:type", Object)
 ], RWSModel.prototype, "id", void 0);

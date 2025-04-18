@@ -8,7 +8,7 @@ import { FieldsHelper } from './helper/FieldsHelper';
 
 import type  { FindByType } from './types/FindParams';
 import type  { ITimeSeries } from './types/ITimeSeries';
-import type { IDbConfigHandler } from './types/DbConfigHandler';
+import type { IDbConfigHandler, IDbConfigParams } from './types/DbConfigHandler';
 import type { IRWSModel } from './types/IRWSModel';
 import { RWSCollection, IRWSCollectionMeta, IRWSCollectionOpts } from "./decorators/RWSCollection";
 
@@ -18,6 +18,7 @@ export type {
    IMetaOpts,
    OpModelType,
    IDbConfigHandler,
+   IDbConfigParams,
    ITimeSeries,
 }
 

@@ -56,7 +56,7 @@ export class RelationUtils {
         return relIds;
     }
 
-    static bindRelation(relatedModel: RWSModel<any>): { connect: { id: string } } {
+    static bindRelation(relatedModel: RWSModel<any>): { connect: { id: string | number } } {
         return {
             connect: {
                 id: relatedModel.id
