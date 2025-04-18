@@ -19,8 +19,8 @@ class DBService {
         }
         else {
             this.opts = {
-                dbUrl: this.configService.get('mongo_url'),
-                dbName: this.configService.get('mongo_db'),
+                dbUrl: this.configService.get('db_url'),
+                dbName: this.configService.get('db_name'),
             };
         }
         if (!this.opts.dbUrl) {
@@ -51,14 +51,14 @@ class DBService {
     }
     async createBaseMongoClient() {
         var _a;
-        const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('mongo_url');
+        const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('db_url');
         const client = DBService.baseClientConstruct(dbUrl);
         await client.connect();
         return client;
     }
     async createBaseMongoClientDB() {
         var _a;
-        const dbName = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbName) || this.configService.get('mongo_db');
+        const dbName = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbName) || this.configService.get('db_name');
         const client = await this.createBaseMongoClient();
         return [client, client.db(dbName)];
     }
@@ -152,11 +152,11 @@ class DBService {
     }
     async collectionExists(collection_name) {
         var _a;
-        const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('mongo_url');
+        const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('db_url');
         const client = new mongodb_1.MongoClient(dbUrl);
         try {
             await client.connect();
-            const db = client.db(this.configService.get('mongo_db'));
+            const db = client.db(this.configService.get('db_name'));
             const collections = await db.listCollections().toArray();
             const existingCollectionNames = collections.map((collection) => collection.name);
             return existingCollectionNames.includes(collection_name);

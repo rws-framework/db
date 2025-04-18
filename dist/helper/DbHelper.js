@@ -14,14 +14,14 @@ const workspaceRoot = console_1.rwsPath.findRootWorkspacePath();
 const moduleDir = path_1.default.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
 class DbHelper {
     static async installPrisma(configService, dbService, leaveFile = false) {
-        const dbUrl = configService.get('mongo_url');
-        const dbType = 'mongodb';
+        const dbUrl = configService.get('db_url');
+        const dbType = configService.get('db_type') || 'mongodb';
         let template = `generator client {\n
         provider = "prisma-client-js"\n
     }\n\n`;
         template += `\ndatasource db {\n
         provider = "${dbType}"\n
-        url = env("DATABASE_URL")\n    
+        url = env("PRISMA_DB_URL")\n
     }\n\n`;
         const dbModels = configService.get('db_models');
         if (dbModels) {

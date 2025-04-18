@@ -26,7 +26,7 @@ export class DbHelper {
 
         template += `\ndatasource db {\n
         provider = "${dbType}"\n
-        url = ${configService.get('db_models')}\n    
+        url = env("PRISMA_DB_URL")\n
     }\n\n`;
 
         const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');       

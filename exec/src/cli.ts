@@ -66,6 +66,7 @@ async function main(): Promise<void>
 {
   console.log('INSTALL PRISMA');
   const cfg = await Config.getInstance();
+  process.env.PRISMA_DB_URL = cfg.get('db_url');
   DbHelper.installPrisma(cfg, new DBService(cfg), false);
 }
 
