@@ -120,7 +120,7 @@ export class DbHelper {
     static async pushDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile = false){
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') }
         
-        const schemaPath = path.join(workspaceRoot, 'node_modules', '.prisma', 'schema.prisma');
+        const schemaPath = path.join(workspaceRoot, 'node_modules', '.prisma', 'client','schema.prisma');
     
         await rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema="${schemaPath}"`, process.cwd());
 
