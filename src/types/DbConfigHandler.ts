@@ -1,8 +1,9 @@
 import { OpModelType } from "../models/interfaces/OpModelType";
 
 export interface IDbConfigParams {
-    mongo_url?: string;
-    mongo_db?: string;
+    db_url?: string;
+    db_name?: string;
+    db_type?: string;
     db_models?: OpModelType<any>[]
 }
 

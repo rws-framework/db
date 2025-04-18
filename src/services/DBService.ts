@@ -23,8 +23,8 @@ class DBService {
             this.opts = opts;
         }else{
             this.opts = {
-                dbUrl: this.configService.get('mongo_url'),        
-                dbName: this.configService.get('mongo_db'),
+                dbUrl: this.configService.get('db_url'),        
+                dbName: this.configService.get('db_name'),
             };
         }
 
@@ -65,7 +65,7 @@ class DBService {
 
     public async createBaseMongoClient(): Promise<MongoClient>
     {
-        const dbUrl = this.opts?.dbUrl || this.configService.get('mongo_url');
+        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
         const client = DBService.baseClientConstruct(dbUrl);
     
         await client.connect();
@@ -76,7 +76,7 @@ class DBService {
 
     public async createBaseMongoClientDB(): Promise<[MongoClient, Db]>
     {
-        const dbName = this.opts?.dbName || this.configService.get('mongo_db');
+        const dbName = this.opts?.dbName || this.configService.get('db_name');
         const client = await this.createBaseMongoClient();
         return [client, client.db(dbName)];
     }
@@ -215,13 +215,13 @@ class DBService {
 
     async collectionExists(collection_name: string): Promise<boolean>
     {
-        const dbUrl = this.opts?.dbUrl || this.configService.get('mongo_url');
+        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
         const client = new MongoClient(dbUrl);
 
         try {
             await client.connect();    
 
-            const db = client.db(this.configService.get('mongo_db'));
+            const db = client.db(this.configService.get('db_name'));
 
             const collections = await db.listCollections().toArray();
             const existingCollectionNames = collections.map((collection) => collection.name);

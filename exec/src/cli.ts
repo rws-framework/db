@@ -34,12 +34,13 @@ class Config implements IDbConfigHandler {
   
   async fill(): Promise<void>
   {
-    this.data.mongo_url = args[0];
-    this.data.mongo_db = args[1];    
+    this.data.db_url = args[0];
+    this.data.db_name = args[1];    
+    this.data.db_type = args[2];
     
 
-    this.modelsDir = args[2];    
-    this.cliExecRoot = args[3]; 
+    this.modelsDir = args[3];    
+    this.cliExecRoot = args[4]; 
 
     console.log({args})
 

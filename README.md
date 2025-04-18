@@ -218,8 +218,9 @@ export {InverseRelationOpts};
 class Config implements IDbConfigHandler {
     private data: IDbConfigParams = {
         db_models: [],
-        mongo_db: null,
-        mongo_url: null
+        db_name: null,
+        db_url: null,
+        db_type: null
     };
 
     private modelsDir: string;
@@ -242,14 +243,13 @@ class Config implements IDbConfigHandler {
     
     async fill(): Promise<void>
     {
-        this.data.mongo_url = args[0];
-        this.data.mongo_db = args[1];    
+        this.data.db_url = args[0];
+        this.data.db_name = args[1];    
+        this.data.db_type = args[2];
         
 
-        this.modelsDir = args[2];    
-        this.cliExecRoot = args[3]; 
-
-        this.data.db_models = (await import('@V/index')).default;      
+        this.modelsDir = args[3];    
+        this.cliExecRoot = args[4]; 
     }
 
     getModelsDir(): string
@@ -285,58 +285,85 @@ The exec file.
 /exec/src/console.js
 ```
 
+dbType can be any prisma db driver - mongodb by default
+
 ```bash
 #npm
 
-npx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName src/models
+npx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName dbType src/models
 ```
 
 ```bash
 #yarn
 
-yarn rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName src/models
+yarn rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName dbType src/models
 ```
 
 ```bash
 #bun
 
-bunx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName src/models
+bunx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&replicaSet=rs0" databaseName dbType src/models
 ```
 
 Code for RWS to prisma conversion from "@rws-framework/server" package:
 
 ```typescript
-async function generateModelSections<T extends Model<T>>(model: OpModelType<T>): Promise<string> {
+static async generateModelSections(model: OpModelType<any>): Promise<string> {
     let section = '';
-    const modelMetadatas: Record<string, {annotationType: string, metadata: any}> = await Model.getModelAnnotations(model);    
+    const modelMetadatas: Record<string, {annotationType: string, metadata: any}> = await RWSModel.getModelAnnotations(model);    
 
     const modelName: string = (model as any)._collection;
     
     section += `model ${modelName} {\n`;
     section += '\tid String @map("_id") @id @default(auto()) @db.ObjectId\n';
- 
+    
     for (const key in modelMetadatas) {
-        const modelMetadata: IMetaOpts = modelMetadatas[key].metadata;            
-        const requiredString = modelMetadata.required ? '' : '?';  
+        const modelMetadata = modelMetadatas[key].metadata;            
+        let requiredString = modelMetadata.required ? '' : '?';  
         const annotationType: string = modelMetadatas[key].annotationType;
 
         if(key === 'id'){
             continue;
         }
+
         
         if(annotationType === 'Relation'){
-            const relatedModel = modelMetadata.relatedTo as OpModelType<T>;        
-            // Handle direct relation (many-to-one or one-to-one)
-            section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField}], onDelete: Cascade)\n`;      
-            section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
-        } else if (annotationType === 'InverseRelation'){        
+            const relationMeta = modelMetadata as IRelationOpts
+
+            const relatedModel = relationMeta.relatedTo as OpModelType<any>;  
+            const isMany = relationMeta.many;
+            const cascadeOpts = [];
+
+            if (relationMeta.cascade?.onDelete) {
+                cascadeOpts.push(`onDelete: ${relationMeta.cascade.onDelete}`);
+            }
+
+            if (relationMeta.cascade?.onUpdate) {
+                cascadeOpts.push(`onUpdate: ${relationMeta.cascade.onUpdate}`);
+            }
+    
+            if (isMany) {
+                // Handle many-to-many or one-to-many relation
+                section += `\t${key} ${relatedModel._collection}[] @relation("${modelName}_${relatedModel._collection}")\n`;
+            } else {
+                // Handle one-to-one or many-to-one relation
+                section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField || 'id'}], ${cascadeOpts.join(', ')})\n`;
+                section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
+            }
+        } else if (annotationType === 'InverseRelation'){   
+            const relationMeta = modelMetadata as InverseRelationOpts;
+    
             // Handle inverse relation (one-to-many or one-to-one)
-            section += `\t${key} ${modelMetadata.inversionModel._collection}[] @relation("${modelMetadata.inversionModel._collection}_${modelName}")\n`;
+            section += `\t${key} ${relationMeta.inversionModel._collection}[] @relation("${ relationMeta.relationName ? relationMeta.relationName : `${relationMeta.inversionModel._collection}_${modelName}`}")\n`;
         } else if (annotationType === 'InverseTimeSeries'){        
             section += `\t${key} String[] @db.ObjectId\n`;      
         } else if (annotationType === 'TrackType'){        
-            const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);          
-            section += `\t${key} ${toConfigCase(modelMetadata)}${requiredString} ${tags.join(' ')}\n`;
+            const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);             
+
+            if(modelMetadata.isArray || modelMetadata.type.name === 'Array'){
+                requiredString = '';
+            }       
+            section += `\t${key} ${DbHelper.toConfigCase(modelMetadata)}${requiredString} ${tags.join(' ')}\n`;
         }
     }
     
@@ -344,25 +371,35 @@ async function generateModelSections<T extends Model<T>>(model: OpModelType<T>):
     return section;
 }
 
-function toConfigCase(modelType: any): string {
+static toConfigCase(modelType: IMetaOpts): string {
     const type = modelType.type;
-    const input = type.name;  
+    let input = type.name;    
+    
 
     if(input == 'Number'){
-        return 'Int';
+        input = 'Int';
     }
 
     if(input == 'Object'){
-        return 'Json';
+        input = 'Json';
     }
 
     if(input == 'Date'){
-        return 'DateTime';
+        input = 'DateTime';
     }
 
+    if(input == 'Array'){
+        input = 'Json[]';
+    }
 
     const firstChar = input.charAt(0).toUpperCase();
     const restOfString = input.slice(1);
-    return firstChar + restOfString;
+    let resultField = firstChar + restOfString;
+
+    if(modelType.isArray){
+        resultField += '[]';
+    }
+
+    return resultField;
 }
 ```

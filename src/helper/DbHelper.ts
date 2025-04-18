@@ -17,8 +17,8 @@ const moduleDir = path.resolve(workspaceRoot, 'node_modules', '@rws-framework', 
 export class DbHelper {
     static async installPrisma(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void>
     {
-        const dbUrl = configService.get('mongo_url');      
-        const dbType = 'mongodb';
+        const dbUrl = configService.get('db_url');      
+        const dbType = configService.get('db_type') || 'mongodb';
 
         let template: string = `generator client {\n
         provider = "prisma-client-js"\n
@@ -26,7 +26,7 @@ export class DbHelper {
 
         template += `\ndatasource db {\n
         provider = "${dbType}"\n
-        url = env("DATABASE_URL")\n    
+        url = ${configService.get('db_models')}\n    
     }\n\n`;
 
         const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');       
