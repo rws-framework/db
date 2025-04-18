@@ -67,25 +67,9 @@ export class DbHelper {
             }            
 
             fs.writeFileSync(schemaPath, template);  
-            process.env = { ...process.env, [this.dbUrlVarName]: dbUrl }
+            process.env = { ...process.env, [this.dbUrlVarName]: dbUrl }        
             
-            // Use npx directly with the full path to prisma
-            const npxPath = path.join(workspaceRoot, 'node_modules', '.bin', 'npx');
-            const prismaPath = path.join(workspaceRoot, 'node_modules', '.bin', 'prisma');
-            
-            try {
-                // Try using npx with the full path
-                await rwsShell.runCommand(`"${npxPath}" prisma generate --schema="${schemaPath}"`, process.cwd());
-            } catch (error) {
-                // If that fails, try using the prisma binary directly
-                try {
-                    await rwsShell.runCommand(`"${prismaPath}" generate --schema="${schemaPath}"`, process.cwd());
-                } catch (innerError) {
-                    // If both fail, try using node to run prisma
-                    const nodePrismaPath = path.join(workspaceRoot, 'node_modules', 'prisma', 'build', 'index.js');
-                    await rwsShell.runCommand(`node "${nodePrismaPath}" generate --schema="${schemaPath}"`, process.cwd());
-                }
-            }
+            await rwsShell.runCommand(`${this.detectInstaller()} prisma generate --schema="${schemaPath}"`, process.cwd());
 
             leaveFile = false;
             log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
@@ -137,11 +121,7 @@ export class DbHelper {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') }
         const schemaDir = path.join(moduleDir, 'prisma');
         const schemaPath = path.join(schemaDir, 'schema.prisma');
-        
-        // Use npx directly with the full path to prisma
-        const execCmdPath = path.join(workspaceRoot, 'node_modules', '.bin', 'yarn.cmd');
-        const execPrismaPath = path.join(workspaceRoot, 'node_modules', '.bin', 'yarn.cmd');
-        
+    
         await rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema="${schemaPath}"`, process.cwd());
 
     }
