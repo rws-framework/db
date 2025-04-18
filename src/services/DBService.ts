@@ -4,7 +4,7 @@ import {ITimeSeries} from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import chalk from 'chalk';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
-import { IPaginationParams } from 'src/types/FindParams';
+import { IPaginationParams } from '../types/FindParams';
 
 interface IDBClientCreate {
   dbUrl?: string;
