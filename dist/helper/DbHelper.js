@@ -49,7 +49,7 @@ class DbHelper {
             }
             fs_1.default.writeFileSync(schemaPath, template);
             process.env = { ...process.env, [this.dbUrlVarName]: dbUrl };
-            await console_1.rwsShell.runCommand(`${this.detectInstaller()} prisma generate --schema="${schemaPath}"`, process.cwd());
+            await console_1.rwsShell.runCommand(`${this.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
             leaveFile = false;
             log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
             if (!leaveFile) {
@@ -84,7 +84,7 @@ class DbHelper {
     static async pushDBModels(configService, dbService, leaveFile = false) {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
         const schemaPath = path_1.default.join(workspaceRoot, 'node_modules', '.prisma', 'client', 'schema.prisma');
-        await console_1.rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema="${schemaPath}"`, process.cwd());
+        await console_1.rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema=${schemaPath}`, process.cwd());
     }
     static async generateModelSections(model, configService) {
         var _a, _b;

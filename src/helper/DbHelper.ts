@@ -70,7 +70,7 @@ export class DbHelper {
             process.env = { ...process.env, [this.dbUrlVarName]: dbUrl }        
             
             await rwsShell.runCommand(`${this.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
-            
+
             leaveFile = false;
             log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
@@ -122,7 +122,7 @@ export class DbHelper {
         
         const schemaPath = path.join(workspaceRoot, 'node_modules', '.prisma', 'client','schema.prisma');
     
-        await rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema="${schemaPath}"`, process.cwd());
+        await rwsShell.runCommand(`${this.detectInstaller()} prisma db push --schema=${schemaPath}`, process.cwd());
 
     }
 
