@@ -69,8 +69,8 @@ export class DbHelper {
             fs.writeFileSync(schemaPath, template);  
             process.env = { ...process.env, [this.dbUrlVarName]: dbUrl }        
             
-            await rwsShell.runCommand(`${this.detectInstaller()} prisma generate --schema="${schemaPath}"`, process.cwd());
-
+            await rwsShell.runCommand(`${this.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
+            
             leaveFile = false;
             log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
