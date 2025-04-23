@@ -10,8 +10,8 @@ import chalk from 'chalk';
 class Config implements IDbConfigHandler {
   private data: IDbConfigParams = {
     db_models: [],
-    mongo_db: null,
-    mongo_url: null
+    db_name: null,
+    db_url: null
   };
 
   private modelsDir: string;
