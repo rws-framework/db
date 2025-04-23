@@ -1,3 +1,3 @@
 export interface IRWSModel {
-    id?: string;
+    id?: string | number;
 }

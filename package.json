@@ -1,7 +1,11 @@
 {
   "name": "@rws-framework/db",
   "private": false,
+<<<<<<< HEAD
   "version": "2.4.6",
+=======
+  "version": "2.3.3",
+>>>>>>> 5cc7518 (v2.3.3)
   "description": "",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
