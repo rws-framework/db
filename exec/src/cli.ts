@@ -36,7 +36,7 @@ class Config implements IDbConfigHandler {
   {
     this.data.db_url = args[0];
     this.data.db_name = args[1];    
-    this.data.db_type = args[2];
+    this.data.db_type = args[2] as IDbConfigParams['db_type'];
     
 
     this.modelsDir = args[3];    
