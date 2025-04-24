@@ -8,6 +8,20 @@ interface ITrackerOpts {
     relatedTo?: OpModelType<any>;
     inversionModel?: OpModelType<any>;
     relationName?: string;
+    dbOptions?: {
+        mysql?: {
+            useText?: boolean;
+            maxLength?: number;
+            useUuid?: boolean;
+        };
+        postgres?: {
+            useText?: boolean;
+            useUuid?: boolean;
+        };
+        mongodb?: {
+            customType?: string;
+        };
+    };
 }
 interface IMetaOpts extends ITrackerOpts {
     type: any;

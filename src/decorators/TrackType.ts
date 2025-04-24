@@ -8,7 +8,21 @@ interface ITrackerOpts{
     relatedToField?: string,
     relatedTo?: OpModelType<any>,
     inversionModel?: OpModelType<any>,
-    relationName?: string
+    relationName?: string,
+    dbOptions?: {
+      mysql?: {
+        useText?: boolean;
+        maxLength?: number;
+        useUuid?: boolean;
+      };
+      postgres?: {
+        useText?: boolean;
+        useUuid?: boolean;
+      };
+      mongodb?: {
+        customType?: string;
+      };
+    }
   }
   
   interface IMetaOpts extends ITrackerOpts{
@@ -52,6 +66,11 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
   
     if(opts.inversionModel){
         metaOpts.inversionModel = opts.inversionModel;  
+    }
+    
+    // Copy dbOptions if present
+    if(opts.dbOptions){
+        metaOpts.dbOptions = opts.dbOptions;
     }
   
     //const resolvedType = typeof type === 'function' ? type() : type;   

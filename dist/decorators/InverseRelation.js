@@ -10,7 +10,11 @@ function InverseRelation(inversionModel, sourceModel, relationOptions = null) {
                 ...relationOptions,
                 key,
                 inversionModel: model,
-                foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : `${source._collection}_id`
+                foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : `${source._collection}_id`,
+                // Generate a unique relation name if one is not provided
+                relationName: relationOptions && relationOptions.relationName ?
+                    relationOptions.relationName.toLowerCase() :
+                    `${model._collection}_${key}_${source._collection}`.toLowerCase()
             };
             return metaOpts;
         });

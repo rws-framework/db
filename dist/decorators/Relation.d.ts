@@ -9,6 +9,8 @@ interface IRelationOpts {
     relatedTo: OpModelType<RWSModel<any>>;
     many?: boolean;
     embed?: boolean;
+    useUuid?: boolean;
+    relationName?: string;
     cascade: {
         onDelete: CascadingSetup;
         onUpdate: CascadingSetup;

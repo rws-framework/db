@@ -1,7 +1,14 @@
 import { DBService } from "./services/DBService";
 import { RWSModel, OpModelType } from "./models/_model";
 // import TimeSeriesModel from './models/core/TimeSeriesModel';
-import { InverseRelation, Relation, TrackType, InverseTimeSeries, IMetaOpts } from './decorators';
+import { 
+  InverseRelation, 
+  Relation, 
+  TrackType, 
+  InverseTimeSeries, 
+  IMetaOpts,
+  ITrackerOpts
+} from './decorators';
 
 import { DbHelper } from './helper/DbHelper';
 import { FieldsHelper } from './helper/FieldsHelper';
@@ -16,6 +23,7 @@ export type {
    IRWSCollectionMeta, IRWSCollectionOpts,
    IRWSModel,
    IMetaOpts,
+   ITrackerOpts,
    OpModelType,
    IDbConfigHandler,
    IDbConfigParams,

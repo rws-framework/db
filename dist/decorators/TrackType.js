@@ -30,6 +30,10 @@ function TrackType(type, opts = null, tags = []) {
     if (opts.inversionModel) {
         metaOpts.inversionModel = opts.inversionModel;
     }
+    // Copy dbOptions if present
+    if (opts.dbOptions) {
+        metaOpts.dbOptions = opts.dbOptions;
+    }
     //const resolvedType = typeof type === 'function' ? type() : type;   
     if (type._collection) {
         metaOpts.type = type;

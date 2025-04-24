@@ -11,6 +11,8 @@ interface IRelationOpts {
     relatedTo: OpModelType<RWSModel<any>>
     many?: boolean
     embed?: boolean
+    useUuid?: boolean
+    relationName?: string
     cascade: {
         onDelete: CascadingSetup,
         onUpdate: CascadingSetup
@@ -30,7 +32,11 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: P
                 cascade: relationOptions.cascade || _DEFAULTS.cascade,
                 relatedTo,
                 relationField: relationOptions.relationField ? relationOptions.relationField : relatedTo._collection + '_id',
-                key
+                key,
+                // Generate a unique relation name if one is not provided
+                relationName: relationOptions.relationName ? 
+                  relationOptions.relationName.toLowerCase() : 
+                  `${target.constructor.name.toLowerCase()}_${key}_${relatedTo._collection.toLowerCase()}`
             };                                        
             return metaOpts;
         });
