@@ -63,7 +63,7 @@ export class DbUtils {
                 return 'id Int @id @default(autoincrement())';
 
             default:
-                throw new Error('Kurwa, nieobsługiwany typ bazy danych!');
+                throw new Error(`DB type "${dbType}" is not supported!`);
         }
     }
 }
