@@ -19,8 +19,6 @@ class DbHelper {
         let template = this.generateBaseSchema(dbType, dbUrl);
         const dbModels = configService.get('db_models');
         if (dbModels) {
-            // First, collect all relations to ensure we can create inverse relations
-            // Collect all relations
             for (const model of dbModels) {
                 const modelName = model._collection;
                 const modelMetadatas = await _model_1.RWSModel.getModelAnnotations(model);
@@ -74,6 +72,23 @@ class DbHelper {
                 // fs.unlinkSync(schemaPath);
             }
         }
+    }
+    static getShortenedRelationName(modelName, relatedModelName, index) {
+        const fullRelationName = `${modelName}_${relatedModelName}_${index}`.toLowerCase();
+        if (fullRelationName.length <= 64) {
+            return fullRelationName;
+        }
+        const extraChars = 2 + String(index).length;
+        const availableChars = 64 - extraChars;
+        const modelNameLength = modelName.length;
+        const relatedModelNameLength = relatedModelName.length;
+        const totalLength = modelNameLength + relatedModelNameLength;
+        const modelNameMaxLength = Math.floor(availableChars * (modelNameLength / totalLength));
+        const relatedModelNameMaxLength = availableChars - modelNameMaxLength;
+        const shortenedModelName = modelName.substring(0, Math.max(3, modelNameMaxLength));
+        const shortenedRelatedModelName = relatedModelName.substring(0, Math.max(3, relatedModelNameMaxLength));
+        // Create the new relation name
+        return `${shortenedModelName}_${shortenedRelatedModelName}_${index}`.toLowerCase();
     }
     static markRelation(relationKey, inverse = false) {
         if (!this.allRelations.has(relationKey)) {
@@ -187,25 +202,14 @@ datasource db {
                 const relatedModelName = relatedModel._collection;
                 const relationKey = [modelName, relatedModelName].join('_');
                 const relationIndex = this.getRelationCounter(relationKey);
+                const relationName = this.getShortenedRelationName(modelName, relatedModelName, relationIndex);
+                const mapName = relationName;
                 if (isMany) {
-                    // Generate a very short relation name using a counter
-                    // Use a consistent key for both sides of the relation to ensure the same name is used
-                    const relationName = `${modelName}_${relatedModelName}_${relationIndex}`.toLowerCase();
-                    // Generate a very short map name
-                    const mapName = `${modelName}_${relatedModelName}_${relationIndex}`.toLowerCase();
                     // Add an inverse field to the related model if it doesn't exist
-                    const inverseFieldName = `${modelName.toLowerCase()}_${key}`;
                     section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", map: "${mapName}")\n`;
                 }
                 else {
-                    // Handle one-to-one or many-to-one relation
-                    // Use the original relation field name (converted to lowercase) to ensure uniqueness
-                    // This is important for models with multiple relations to the same model
                     const relationFieldName = key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
-                    // Use a consistent key for both sides of the relation to ensure the same name is used                    
-                    const relationName = `${modelName}_${relatedModelName}_${relationIndex}`.toLowerCase();
-                    // Generate a very short map name
-                    const mapName = `${modelName}_${relatedModelName}_${relationIndex}`.toLowerCase();
                     section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${modelMetadata.relatedToField || 'id'}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
                     // Add relation field with appropriate type based on database
                     if (dbType === 'mongodb') {
@@ -246,11 +250,8 @@ datasource db {
                 // Use a consistent key for both sides of the relation to ensure the same name is used
                 const relationKey = [relatedModelName, modelName].join('_');
                 const relationIndex = this.getRelationCounter(relationKey, true);
-                const relationName = `${relatedModelName}_${modelName}_${relationIndex}`.toLowerCase();
-                // Generate a very short map name
-                const mapName = `${relatedModelName}_${modelName}_${relationIndex}`.toLowerCase();
-                // Add an inverse field to the related model if it doesn't exist
-                const inverseFieldName = `${modelName.toLowerCase()}_${key}`;
+                const relationName = this.getShortenedRelationName(relatedModelName, modelName, relationIndex);
+                const mapName = relationName;
                 section += `\t${key} ${relationMeta.inversionModel._collection}[] @relation("${relationName}", map: "${mapName}")\n`;
                 this.completeRelation(relationKey, relationIndex, true);
             }

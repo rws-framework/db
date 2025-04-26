@@ -5,6 +5,7 @@ import {
   InverseRelation, 
   Relation, 
   TrackType, 
+  IdType,
   InverseTimeSeries, 
   IMetaOpts,
   ITrackerOpts
@@ -39,7 +40,7 @@ export {
    FindByType, 
    // TimeSeriesModel,   
 
-   InverseRelation, Relation, TrackType, InverseTimeSeries,
+   InverseRelation, Relation, TrackType, InverseTimeSeries, IdType,
 
    DbHelper,
    FieldsHelper

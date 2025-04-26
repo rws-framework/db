@@ -8,6 +8,7 @@ interface IRelationOpts {
     key: string
     relationField: string
     relatedToField?: string
+    mappingName?: string
     relatedTo: OpModelType<RWSModel<any>>
     many?: boolean
     embed?: boolean
@@ -24,7 +25,8 @@ const _DEFAULTS: Partial<IRelationOpts> = { required: false, many: false, embed:
 function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<IRelationOpts> = _DEFAULTS) {
     return function(target: any, key: string) {     
         // Store the promise in metadata immediately
-        const metadataPromise = Promise.resolve().then(() => {
+        console.log('for', {key});
+        const metadataPromise = Promise.resolve().then(() => {            
             const relatedTo = theModel();
 
             const metaOpts: IRelationOpts = {

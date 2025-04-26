@@ -1,6 +1,6 @@
 import { DBService } from "./services/DBService";
 import { RWSModel, OpModelType } from "./models/_model";
-import { InverseRelation, Relation, TrackType, InverseTimeSeries, IMetaOpts, ITrackerOpts } from './decorators';
+import { InverseRelation, Relation, TrackType, IdType, InverseTimeSeries, IMetaOpts, ITrackerOpts } from './decorators';
 import { DbHelper } from './helper/DbHelper';
 import { FieldsHelper } from './helper/FieldsHelper';
 import type { FindByType } from './types/FindParams';
@@ -9,4 +9,4 @@ import type { IDbConfigHandler, IDbConfigParams } from './types/DbConfigHandler'
 import type { IRWSModel } from './types/IRWSModel';
 import { RWSCollection, IRWSCollectionMeta, IRWSCollectionOpts } from "./decorators/RWSCollection";
 export type { IRWSCollectionMeta, IRWSCollectionOpts, IRWSModel, IMetaOpts, ITrackerOpts, OpModelType, IDbConfigHandler, IDbConfigParams, ITimeSeries, };
-export { RWSModel, RWSCollection, DBService, FindByType, InverseRelation, Relation, TrackType, InverseTimeSeries, DbHelper, FieldsHelper };
+export { RWSModel, RWSCollection, DBService, FindByType, InverseRelation, Relation, TrackType, InverseTimeSeries, IdType, DbHelper, FieldsHelper };

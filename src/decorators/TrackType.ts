@@ -1,36 +1,10 @@
 import 'reflect-metadata';
-import { OpModelType } from '../models/interfaces/OpModelType';
-
-interface ITrackerOpts{
-    required?: boolean,
-    isArray?: boolean,
-    relationField?: string,
-    relatedToField?: string,
-    relatedTo?: OpModelType<any>,
-    inversionModel?: OpModelType<any>,
-    relationName?: string,
-    dbOptions?: {
-      mysql?: {
-        useText?: boolean;
-        maxLength?: number;
-        useUuid?: boolean;
-      };
-      postgres?: {
-        useText?: boolean;
-        useUuid?: boolean;
-      };
-      mongodb?: {
-        customType?: string;
-      };
-    }
-  }
+import { ITrackerOpts } from '../models/interfaces/ITrackerOpts';
   
-  interface IMetaOpts extends ITrackerOpts{
+interface IMetaOpts extends ITrackerOpts{
     type: any,
     tags: string[],
-    required: boolean,
-    isArray: boolean
-  }
+}
   
 function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] = []) {
     if(!opts){
@@ -85,4 +59,4 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
 }
 
 export default TrackType;
-export {IMetaOpts, ITrackerOpts};
+export {IMetaOpts};

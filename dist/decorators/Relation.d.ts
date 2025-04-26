@@ -6,6 +6,7 @@ interface IRelationOpts {
     key: string;
     relationField: string;
     relatedToField?: string;
+    mappingName?: string;
     relatedTo: OpModelType<RWSModel<any>>;
     many?: boolean;
     embed?: boolean;

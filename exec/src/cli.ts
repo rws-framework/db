@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 
 const args: string[] = process.argv.slice(2).filter(cmd => cmd !== '--rebuild');
-import fs from 'fs';
-import path from 'path';
-import { DbHelper, DBService, OpModelType, RWSModel } from '../../src';
+
 import { IDbConfigHandler, IDbConfigParams } from '../../src/types/DbConfigHandler';
 import chalk from 'chalk';
+import { DbHelper } from '../../src/helper/DbHelper';
+import { DBService } from '../../src/services/DBService';
 
 class Config implements IDbConfigHandler {
   private data: IDbConfigParams = {
@@ -40,9 +40,7 @@ class Config implements IDbConfigHandler {
     
 
     this.modelsDir = args[3];    
-    this.cliExecRoot = args[4]; 
-
-    console.log({args})
+    this.cliExecRoot = args[4];     
 
     // this.data.db_models = (await import('@V/index')).default;      
   }

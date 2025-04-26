@@ -1,31 +1,32 @@
 import 'reflect-metadata';
 import { RWSModel, OpModelType } from '../models/_model';
 
-interface InverseRelationOpts{
+interface InverseRelationOpts {
     key: string,
-    inversionModel: OpModelType<RWSModel<any>>,
-    foreignKey: string,
-    singular?: boolean    
+    inversionModel: OpModelType<RWSModel<any>>
+    foreignKey: string
+    singular?: boolean
     relationName?: string
-  }
+    mappingName?: string
+}
 
-  function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<InverseRelationOpts> = null) {    
-    return function(target: any, key: string) {             
+function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<InverseRelationOpts> = null) {
+    return function (target: any, key: string) {
         const metadataPromise = Promise.resolve().then(() => {
             const model = inversionModel();
             const source = sourceModel();
-    
+
             const metaOpts: InverseRelationOpts = {
                 ...relationOptions,
                 key,
                 inversionModel: model,
                 foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : `${source._collection}_id`,
                 // Generate a unique relation name if one is not provided
-                relationName: relationOptions && relationOptions.relationName ? 
-                  relationOptions.relationName.toLowerCase() : 
-                  `${model._collection}_${key}_${source._collection}`.toLowerCase()
-            };             
-    
+                relationName: relationOptions && relationOptions.relationName ?
+                    relationOptions.relationName.toLowerCase() :
+                    `${model._collection}_${key}_${source._collection}`.toLowerCase()
+            };
+
             return metaOpts;
         });
 
@@ -38,4 +39,4 @@ interface InverseRelationOpts{
 }
 
 export default InverseRelation;
-export {InverseRelationOpts};
+export { InverseRelationOpts };

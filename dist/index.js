@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FieldsHelper = exports.DbHelper = exports.InverseTimeSeries = exports.TrackType = exports.Relation = exports.InverseRelation = exports.DBService = exports.RWSCollection = exports.RWSModel = void 0;
+exports.FieldsHelper = exports.DbHelper = exports.IdType = exports.InverseTimeSeries = exports.TrackType = exports.Relation = exports.InverseRelation = exports.DBService = exports.RWSCollection = exports.RWSModel = void 0;
 const DBService_1 = require("./services/DBService");
 Object.defineProperty(exports, "DBService", { enumerable: true, get: function () { return DBService_1.DBService; } });
 const _model_1 = require("./models/_model");
@@ -10,6 +10,7 @@ const decorators_1 = require("./decorators");
 Object.defineProperty(exports, "InverseRelation", { enumerable: true, get: function () { return decorators_1.InverseRelation; } });
 Object.defineProperty(exports, "Relation", { enumerable: true, get: function () { return decorators_1.Relation; } });
 Object.defineProperty(exports, "TrackType", { enumerable: true, get: function () { return decorators_1.TrackType; } });
+Object.defineProperty(exports, "IdType", { enumerable: true, get: function () { return decorators_1.IdType; } });
 Object.defineProperty(exports, "InverseTimeSeries", { enumerable: true, get: function () { return decorators_1.InverseTimeSeries; } });
 const DbHelper_1 = require("./helper/DbHelper");
 Object.defineProperty(exports, "DbHelper", { enumerable: true, get: function () { return DbHelper_1.DbHelper; } });

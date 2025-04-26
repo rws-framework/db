@@ -5,6 +5,7 @@ export declare class DbHelper {
     static dbUrlVarName: string;
     private static allRelations;
     static installPrisma(configService: IDbConfigHandler, dbService: DBService, leaveFile?: boolean): Promise<void>;
+    static getShortenedRelationName(modelName: string, relatedModelName: string, index: number): string;
     static markRelation(relationKey: string, inverse?: boolean): void;
     static completeRelation(relationKey: string, index: number, inverse?: boolean): void;
     static generateBaseSchema(dbType: string, dbUrl: string): string;
