@@ -1,6 +1,6 @@
 # Models
 
-RWS models are converted to Prisma schemas and are wrapping around generated PrismaClient providing complete typing and better Relation handling + TimeSeries in future minor versions.
+RWS models are converted to Prisma schemas and are wrapping around generated PrismaClient providing complete typing and better Relation handling + TimeSeries in future versions.
 
 ## Models index file
 
@@ -21,11 +21,7 @@ export const models = [ User, ApiKey];
     import ApiKey from './ApiKey';
     import IApiKey from './interfaces/IApiKey';
 
-@RWSCollection('users', { 
-    relations: {
-        transcriptions: true,
-        apiKeys: true
-    },
+@RWSCollection('users', {
     ignored_keys: ['passwd']
 })
 class User extends RWSModel<User> implements IUser {
@@ -68,19 +64,25 @@ export default User;
 
 ***Basic many to one relation***
 ```typescript
-import { RWSModel, TrackType, Relation } from '@rws-framework/db';
+import { RWSCollection, RWSModel, TrackType, Relation } from '@rws-framework/db';
 
 import 'reflect-metadata';
 import User from './User';
+import SomeModel from './SomeModel';
 import IApiKey from './interfaces/IApiKey';
 
+@RWSCollection('user_api_keys', {
+    relations: {
+        dummyIgnoredHydrationRelation: false // ignoring this relation on hydration - will be null
+    }
+})
 class ApiKey extends RWSModel<ApiKey> implements IApiKey {
-    static _RELATIONS = {
-        user: true,
-    };
 
-    @Relation(() => User, true) // second attribute is required = false
+    @Relation(() => User, { requried: false }) // second attribute is required = false
     user: User;
+
+    @Relation(() => SomeModel) // relation to be ignored by 
+    dummyIgnoredHydrationRelation: SomeModel;
 
     @TrackType(Object)
     keyval: string;
@@ -111,29 +113,52 @@ export default ApiKey;
 
 ```typescript
 import 'reflect-metadata';
+import { RWSModel, OpModelType } from '../models/_model';
 
-import { RWSModel, OpModelType } from '@rws-framework/db';
+export type CascadingSetup = 'Cascade' | 'Restrict' | 'NoAction' | 'SetNull';
 
-interface IRelationOpts {
+export interface IRelationOpts {
     required?: boolean
-    key?: string
-    relationField?: string
-    relatedToField?: string
-    relatedTo: OpModelType<Model<any>>
+    key: string
+    relationField: string //name of field that will hold the relation key value
+    relatedToField?: string //name of related field (id by default)
+    mappingName?: string
+    relatedTo: OpModelType<RWSModel<any>>
+    many?: boolean // is it one-to-many or many-to-one
+    embed?: boolean // @deprecated for mongo - new decorator for embeds incoming
+    useUuid?: boolean //for sql dbs - if you're using some text based id
+    relationName?: string
+    cascade?: {
+        onDelete?: CascadingSetup,
+        onUpdate?: CascadingSetup
+    }
 }
+
+const _DEFAULTS: Partial<IRelationOpts> = { required: false, many: false, embed: false, cascade: { onDelete: 'SetNull', onUpdate: 'Cascade' }};
   
-function Relation(theModel: () => OpModelType<RWSModel<any>>, required: boolean = false, relationField: string = null, relatedToField: string = 'id') {
+function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<IRelationOpts> = _DEFAULTS) {
     return function(target: any, key: string) {     
         // Store the promise in metadata immediately
-        const metadataPromise = Promise.resolve().then(() => {
+        
+        const metadataPromise = Promise.resolve().then(() => {            
             const relatedTo = theModel();
-            const metaOpts: IRelationOpts = {required, relatedTo, relatedToField};                    
-            if(!relationField){
-                metaOpts.relationField = relatedTo._collection + '_id';
-            } else{
-                metaOpts.relationField = relationField;
-            }  
-            metaOpts.key = key;
+
+            const metaOpts: IRelationOpts = {
+                ...relationOptions, 
+                cascade: relationOptions.cascade || _DEFAULTS.cascade,
+                relatedTo,
+                relationField: relationOptions.relationField ? relationOptions.relationField : relatedTo._collection + '_id',
+                key,
+                // Generate a unique relation name if one is not provided
+                relationName: relationOptions.relationName ? 
+                  relationOptions.relationName.toLowerCase() : 
+                  `${target.constructor.name.toLowerCase()}_${key}_${relatedTo._collection.toLowerCase()}`
+            };  
+            
+            if(relationOptions.required){
+                metaOpts.cascade.onDelete = 'Restrict';
+            }
+
             return metaOpts;
         });
 
@@ -147,33 +172,41 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, required: boolean 
 
 
 export default Relation;
-export {IRelationOpts};
+
+
 ```
 
 ***Inverse relation decorator*** (one-to-many)
 ```typescript
 import 'reflect-metadata';
-import { RWSModel, OpModelType } from '@rws-framework/db';
+import { RWSModel, OpModelType } from '../models/_model';
 
-interface InverseRelationOpts{
+export interface InverseRelationOpts {
     key: string,
-    inversionModel: OpModelType<RWSModel<any>>,
-    foreignKey: string    
-  }
+    inversionModel: OpModelType<RWSModel<any>>
+    foreignKey: string
+    singular?: boolean
+    relationName?: string
+    mappingName?: string
+}
 
-  function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, foreignKey: string = null) {    
-    return function(target: any, key: string) {     
-        // Store the promise in metadata immediately
+function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<InverseRelationOpts> = null) {
+    return function (target: any, key: string) {
         const metadataPromise = Promise.resolve().then(() => {
             const model = inversionModel();
             const source = sourceModel();
-    
+
             const metaOpts: InverseRelationOpts = {
+                ...relationOptions,
                 key,
                 inversionModel: model,
-                foreignKey: foreignKey ? foreignKey : `${source._collection}_id`
-            };             
-    
+                foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : `${source._collection}_id`,
+                // Generate a unique relation name if one is not provided
+                relationName: relationOptions && relationOptions.relationName ?
+                    relationOptions.relationName.toLowerCase() :
+                    `${model._collection}_${key}_${source._collection}`.toLowerCase()
+            };
+
             return metaOpts;
         });
 
@@ -186,7 +219,7 @@ interface InverseRelationOpts{
 }
 
 export default InverseRelation;
-export {InverseRelationOpts};
+
 ```
 
 
@@ -307,99 +340,4 @@ bunx rws-db "mongodb://user:pass@localhost:27017/databaseName?authSource=admin&r
 
 Code for RWS to prisma conversion from "@rws-framework/server" package:
 
-```typescript
-static async generateModelSections(model: OpModelType<any>): Promise<string> {
-    let section = '';
-    const modelMetadatas: Record<string, {annotationType: string, metadata: any}> = await RWSModel.getModelAnnotations(model);    
-
-    const modelName: string = (model as any)._collection;
-    
-    section += `model ${modelName} {\n`;
-    section += '\tid String @map("_id") @id @default(auto()) @db.ObjectId\n';
-    
-    for (const key in modelMetadatas) {
-        const modelMetadata = modelMetadatas[key].metadata;            
-        let requiredString = modelMetadata.required ? '' : '?';  
-        const annotationType: string = modelMetadatas[key].annotationType;
-
-        if(key === 'id'){
-            continue;
-        }
-
-        
-        if(annotationType === 'Relation'){
-            const relationMeta = modelMetadata as IRelationOpts
-
-            const relatedModel = relationMeta.relatedTo as OpModelType<any>;  
-            const isMany = relationMeta.many;
-            const cascadeOpts = [];
-
-            if (relationMeta.cascade?.onDelete) {
-                cascadeOpts.push(`onDelete: ${relationMeta.cascade.onDelete}`);
-            }
-
-            if (relationMeta.cascade?.onUpdate) {
-                cascadeOpts.push(`onUpdate: ${relationMeta.cascade.onUpdate}`);
-            }
-    
-            if (isMany) {
-                // Handle many-to-many or one-to-many relation
-                section += `\t${key} ${relatedModel._collection}[] @relation("${modelName}_${relatedModel._collection}")\n`;
-            } else {
-                // Handle one-to-one or many-to-one relation
-                section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${modelName}_${relatedModel._collection}", fields: [${modelMetadata.relationField}], references: [${modelMetadata.relatedToField || 'id'}], ${cascadeOpts.join(', ')})\n`;
-                section += `\t${modelMetadata.relationField} String${requiredString} @db.ObjectId\n`;
-            }
-        } else if (annotationType === 'InverseRelation'){   
-            const relationMeta = modelMetadata as InverseRelationOpts;
-    
-            // Handle inverse relation (one-to-many or one-to-one)
-            section += `\t${key} ${relationMeta.inversionModel._collection}[] @relation("${ relationMeta.relationName ? relationMeta.relationName : `${relationMeta.inversionModel._collection}_${modelName}`}")\n`;
-        } else if (annotationType === 'InverseTimeSeries'){        
-            section += `\t${key} String[] @db.ObjectId\n`;      
-        } else if (annotationType === 'TrackType'){        
-            const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);             
-
-            if(modelMetadata.isArray || modelMetadata.type.name === 'Array'){
-                requiredString = '';
-            }       
-            section += `\t${key} ${DbHelper.toConfigCase(modelMetadata)}${requiredString} ${tags.join(' ')}\n`;
-        }
-    }
-    
-    section += '}\n';
-    return section;
-}
-
-static toConfigCase(modelType: IMetaOpts): string {
-    const type = modelType.type;
-    let input = type.name;    
-    
-
-    if(input == 'Number'){
-        input = 'Int';
-    }
-
-    if(input == 'Object'){
-        input = 'Json';
-    }
-
-    if(input == 'Date'){
-        input = 'DateTime';
-    }
-
-    if(input == 'Array'){
-        input = 'Json[]';
-    }
-
-    const firstChar = input.charAt(0).toUpperCase();
-    const restOfString = input.slice(1);
-    let resultField = firstChar + restOfString;
-
-    if(modelType.isArray){
-        resultField += '[]';
-    }
-
-    return resultField;
-}
-```
+[The repo file](https://github.com/rws-framework/db/blob/master/src/helper/DbHelper.ts)
