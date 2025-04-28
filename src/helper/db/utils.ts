@@ -1,8 +1,10 @@
 import { rwsPath } from '@rws-framework/console';
 import path from 'path';
 import fs from 'fs';
-import { IDbConfigParams, IdGeneratorOptions } from '../../types/DbConfigHandler';
-import { IIdTypeOpts } from '../../decorators/IdType';
+import { IDbConfigParams } from '../../types/DbConfigHandler';
+import { IIdMetaOpts, IIdTypeOpts } from '../../decorators/IdType';
+import { TypeConverter } from './type-converter';
+import { IDbOpts } from '../../models/interfaces/IDbOpts';
 
 const workspaceRoot = rwsPath.findRootWorkspacePath();
 const moduleDir = path.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
@@ -37,47 +39,80 @@ export class DbUtils {
      */
     static generateId(
         dbType: IDbConfigParams['db_type'],
-        modelMeta: Record<string, { annotationType: string, metadata: IIdTypeOpts }>
+        modelMeta: Record<string, { annotationType: string, metadata: IIdMetaOpts }>,
+        debug = false
     ): string {        
         let useUuid = false;
         let field = 'id';
-        
+        const tags: string[] = [];        
+
         for (const key in modelMeta) {
-            const modelMetadata: IdGeneratorOptions = modelMeta[key].metadata;            
+            const modelMetadata: IIdMetaOpts = modelMeta[key].metadata;            
             const annotationType: string = modelMeta[key].annotationType;            
 
             if(key !== 'id'){
-                if(annotationType == 'IdType'){                    
+                if(annotationType == 'IdType'){     
+                    const dbSpecificTags = TypeConverter.processTypeOptions({ tags: [], dbOptions: modelMetadata.dbOptions }, dbType);
+                    tags.push(...dbSpecificTags);
+                    if(debug){                                     
+                        console.log({modelMetadata: modelMetadata.dbOptions});
+                    }          
+                             
                     field = key;
 
-                    if(modelMetadata.useUuid){
+                    if(modelMetadata.dbOptions?.mysql?.useUuid){
+                        useUuid = true;
+                    }
+
+                    if(modelMetadata.dbOptions?.postgres?.useUuid){
+                        useUuid = true;
+                    }
+
+                    if(modelMetadata.type.name === 'String'){
                         useUuid = true;
                     }
                 }
             }
         }
 
+        let idString: string;
+
         switch (dbType) {
             case 'mongodb':
-                return `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
+                idString = `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
+                break;
 
             case 'mysql':
-                return useUuid
+                idString = useUuid
                     ? `${field} String @id @default(uuid())`
                     : `${field} Int @id @default(autoincrement())`;
+                break;
 
             case 'postgresql':
             case 'postgres':
-                return useUuid
+                idString = useUuid
                     ? `${field} String @id @default(uuid())`
                     : `${field} Int @id @default(autoincrement())`;
+                    break;    
 
             case 'sqlite':
-                return `${field} Int @id @default(autoincrement())`;
-
-            default:
-                throw new Error(`DB type "${dbType}" is not supported!`);
+                idString = `${field} Int @id @default(autoincrement())`;            
+                break;
         }
+
+        if(tags.length){
+            idString += ' '+tags.join(' ');
+        }
+
+        if(!idString){
+            throw new Error(`DB type "${dbType}" is not supported!`);
+        }
+
+        if(debug){                                     
+            console.log({idString, useUuid});
+        }          
+
+        return idString;
     }
 }
 

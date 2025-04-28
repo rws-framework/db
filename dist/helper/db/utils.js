@@ -7,6 +7,7 @@ exports.moduleDirPath = exports.workspaceRootPath = exports.DbUtils = void 0;
 const console_1 = require("@rws-framework/console");
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
+const type_converter_1 = require("./type-converter");
 const workspaceRoot = console_1.rwsPath.findRootWorkspacePath();
 const moduleDir = path_1.default.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
 /**
@@ -33,38 +34,64 @@ class DbUtils {
     /**
      * Generate an ID field based on the database type
      */
-    static generateId(dbType, modelMeta) {
+    static generateId(dbType, modelMeta, debug = false) {
+        var _a, _b, _c, _d;
         let useUuid = false;
         let field = 'id';
+        const tags = [];
         for (const key in modelMeta) {
             const modelMetadata = modelMeta[key].metadata;
             const annotationType = modelMeta[key].annotationType;
             if (key !== 'id') {
                 if (annotationType == 'IdType') {
+                    const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions({ tags: [], dbOptions: modelMetadata.dbOptions }, dbType);
+                    tags.push(...dbSpecificTags);
+                    if (debug) {
+                        console.log({ modelMetadata: modelMetadata.dbOptions });
+                    }
                     field = key;
-                    if (modelMetadata.useUuid) {
+                    if ((_b = (_a = modelMetadata.dbOptions) === null || _a === void 0 ? void 0 : _a.mysql) === null || _b === void 0 ? void 0 : _b.useUuid) {
+                        useUuid = true;
+                    }
+                    if ((_d = (_c = modelMetadata.dbOptions) === null || _c === void 0 ? void 0 : _c.postgres) === null || _d === void 0 ? void 0 : _d.useUuid) {
+                        useUuid = true;
+                    }
+                    if (modelMetadata.type.name === 'String') {
                         useUuid = true;
                     }
                 }
             }
         }
+        let idString;
         switch (dbType) {
             case 'mongodb':
-                return `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
+                idString = `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
+                break;
             case 'mysql':
-                return useUuid
+                idString = useUuid
                     ? `${field} String @id @default(uuid())`
                     : `${field} Int @id @default(autoincrement())`;
+                break;
             case 'postgresql':
             case 'postgres':
-                return useUuid
+                idString = useUuid
                     ? `${field} String @id @default(uuid())`
                     : `${field} Int @id @default(autoincrement())`;
+                break;
             case 'sqlite':
-                return `${field} Int @id @default(autoincrement())`;
-            default:
-                throw new Error(`DB type "${dbType}" is not supported!`);
+                idString = `${field} Int @id @default(autoincrement())`;
+                break;
         }
+        if (tags.length) {
+            idString += ' ' + tags.join(' ');
+        }
+        if (!idString) {
+            throw new Error(`DB type "${dbType}" is not supported!`);
+        }
+        if (debug) {
+            console.log({ idString, useUuid });
+        }
+        return idString;
     }
 }
 exports.DbUtils = DbUtils;

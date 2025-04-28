@@ -11,6 +11,12 @@ function RWSCollection(collectionName, options) {
         if (options && options.ignored_keys) {
             target._CUT_KEYS = options.ignored_keys;
         }
+        if (options && options.noId) {
+            target._NO_ID = options.noId;
+        }
+        if (options && options.superTags && options.superTags.length) {
+            target._SUPER_TAGS = options.superTags;
+        }
         Reflect.defineMetadata(`RWSCollection`, metaOpts, target);
     };
 }

@@ -12,8 +12,8 @@ import { InverseRelationOpts } from '../../decorators/InverseRelation';
 import { DbUtils } from './utils';
 import { TypeConverter } from './type-converter';
 import { RelationManager } from './relation-manager';
-import { ITrackerOpts } from 'src/decorators';
-import { ITrackerMetaOpts } from 'src/decorators/TrackType';
+import { ITrackerMetaOpts } from '../../decorators/TrackType';
+import { IDbOpts } from '../../models/interfaces/IDbOpts';
 
 const log = console.log;
 
@@ -57,15 +57,28 @@ datasource db {
         const dbType = configService.get('db_type') || 'mongodb';
         const modelName: string = (model as any)._collection;
 
-        section += `model ${modelName} {\n`;
-        section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;    
+        section += `model ${modelName} {\n`;       
+
+        if(
+            !model._NO_ID            
+        ){
+            section += `\t${DbUtils.generateId(dbType, modelMetadatas, false)}\n`;
+        }              
 
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
             let requiredString = modelMetadata.required ? '' : '?';
             const annotationType: string = modelMetadatas[key].annotationType;
 
-            if (key === 'id') {
+            let indexedId = false;
+
+            if(model._NO_ID){
+                indexedId = true;
+                requiredString = '';
+            }
+                   
+
+            if (key === 'id' && !indexedId) {
                 continue;
             }
 
@@ -91,36 +104,45 @@ datasource db {
                 const relationName = RelationManager.getShortenedRelationName(modelName, relatedModelName, relationIndex);
                 const mapName = relationName; 
 
-                if (isMany) {                                 
-                    // Add an inverse field to the related model if it doesn't exist
-                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", map: "${mapName}")\n`;
-                } else {   
-                    const relationFieldName = key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
-               
-                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${modelMetadata.relatedToField || 'id'}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
+                const relatedModelMetadatas: Record<string, { annotationType: string, metadata: ITrackerMetaOpts }> = await RWSModel.getModelAnnotations(relatedModel);
+                const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField  : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
 
-                    // Add relation field with appropriate type based on database
-                    if (dbType === 'mongodb') {
-                        section += `\t${relationFieldName} String${requiredString} @db.ObjectId\n`;
-                    } else if (dbType === 'mysql') {
-                        // For MySQL, determine the type based on the related model's ID type
-                        const useUuid = relationMeta.useUuid || false;
-                        if (useUuid) {
+                const relatedToField = modelMetadata.relatedToField || 'id';
+                const bindingFieldExists = !!modelMetadatas[relationFieldName];          
+
+                if (isMany) {
+                    // Add an inverse field to the related model if it doesn't exist
+                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
+                } else {                    
+                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
+                    if(!bindingFieldExists){
+                        const relatedFieldMeta = relatedModelMetadatas[relatedToField];
+
+                        if(!relatedFieldMeta.metadata.required){
+                            requiredString = '';
+                        }
+                        
+                        let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true);
+        
+                        if(relatedToField === 'id' && dbType !== 'mongodb'){
+                            relatedFieldType = 'Int';
+                        }                                       
+                    
+                        // Add relation field with appropriate type based on database
+                        if (dbType === 'mongodb') {
+                            section += `\t${relationFieldName} String${requiredString} @db.ObjectId\n`;
+                        } else if (dbType === 'mysql') {
+                            // For MySQL, determine the type based on the related model's ID type
+                            section += `\t${relationFieldName} ${relatedFieldType}${requiredString}\n`;
+                        } else if (dbType === 'postgresql' || dbType === 'postgres') {
+                            if (relatedFieldType === 'String') {
+                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString} @db.Uuid\n`;
+                            } else {
+                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString}\n`;
+                            }
+                        } else {                        
                             section += `\t${relationFieldName} String${requiredString}\n`;
-                        } else {
-                            section += `\t${relationFieldName} Int${requiredString}\n`;
                         }
-                    } else if (dbType === 'postgresql' || dbType === 'postgres') {
-                        // For PostgreSQL, use appropriate types
-                        const useUuid = relationMeta.useUuid || false;
-                        if (useUuid) {
-                            section += `\t${relationFieldName} String${requiredString} @db.Uuid\n`;
-                        } else {
-                            section += `\t${relationFieldName} Int${requiredString}\n`;
-                        }
-                    } else {
-                        // Default for other databases
-                        section += `\t${relationFieldName} String${requiredString}\n`;
                     }
                 }
 
@@ -156,11 +178,8 @@ datasource db {
                 }
             } else if (annotationType === 'TrackType') {
                 const trackMeta = modelMetadata as ITrackerMetaOpts;
-                const tags: string[] = trackMeta.tags.map((item: string) => '@' + item);                
-                if(modelName === 'chat_room'){
-                    console.log({trackMeta, key});
-                }
-
+                const tags: string[] = trackMeta.tags.map((item: string) => '@' + item);                           
+       
                 if(trackMeta.unique){
                     const fieldDetail: string | null = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
                     tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
@@ -171,11 +190,18 @@ datasource db {
                 }
 
                 // Process any database-specific options from the metadata
-                const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta, dbType);
+                const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta as { tags: string[], dbOptions: IDbOpts['dbOptions'] }, dbType);
                 tags.push(...dbSpecificTags);
 
-                section += `\t${key} ${TypeConverter.toConfigCase(trackMeta, dbType)}${requiredString} ${tags.join(' ')}\n`;
+                section += `\t${key} ${TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
             }
+        }
+
+        for(const superTag of model._SUPER_TAGS){
+
+            const mapStr = superTag.map ? `, map: "${superTag.map}"` : '';
+
+            section += `\t@@${superTag.tagType}([${superTag.fields.join(', ')}]${mapStr})\n`;
         }
 
         section += '}\n';

@@ -18,6 +18,9 @@ function Relation(theModel, relationOptions = _DEFAULTS) {
                     relationOptions.relationName.toLowerCase() :
                     `${target.constructor.name.toLowerCase()}_${key}_${relatedTo._collection.toLowerCase()}`
             };
+            if (relationOptions.required) {
+                metaOpts.cascade.onDelete = 'Restrict';
+            }
             return metaOpts;
         });
         // Store both the promise and the key information

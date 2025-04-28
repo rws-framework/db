@@ -6,12 +6,15 @@ import { DBService } from '../../services/DBService';
 
 // Reference to the RWSModel class to avoid circular dependency
 import type { RWSModel } from '../core/RWSModel';
+import { ISuperTagData } from '../../decorators/RWSCollection';
 
 export interface OpModelType<T> {
     new(data?: any | null): T;
     services: IRWSModelServices;
     name: string;
     _collection: string;
+    _NO_ID: boolean;
+    _SUPER_TAGS: ISuperTagData[];
     _RELATIONS: {[key: string]: boolean};
     _CUT_KEYS: string[];
     allModels: OpModelType<any>[];

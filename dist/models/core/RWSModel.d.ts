@@ -3,12 +3,15 @@ import { IRWSModelServices } from '../interfaces/IRWSModelServices';
 import { OpModelType } from '../interfaces/OpModelType';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { DBService } from '../../services/DBService';
+import { ISuperTagData } from '../../decorators/RWSCollection';
 declare class RWSModel<T> implements IModel {
     static services: IRWSModelServices;
     [key: string]: any;
     id: string | number;
     static _collection: string;
     static _RELATIONS: {};
+    static _NO_ID: boolean;
+    static _SUPER_TAGS: ISuperTagData[];
     static _BANNED_KEYS: string[];
     static allModels: OpModelType<any>[];
     static _CUT_KEYS: string[];

@@ -1,7 +1,7 @@
 import { IDbConfigHandler, IDbConfigParams } from '../types/DbConfigHandler';
 import { OpModelType } from '../models/_model';
 import { DBService } from '../services/DBService';
-import { IIdTypeOpts } from '../decorators/IdType';
+import { IIdMetaOpts } from '../decorators/IdType';
 /**
  * Database helper class
  *
@@ -54,7 +54,7 @@ export declare class DbHelper {
      */
     static generateId(dbType: IDbConfigParams['db_type'], modelMeta: Record<string, {
         annotationType: string;
-        metadata: IIdTypeOpts;
+        metadata: IIdMetaOpts;
     }>): string;
     /**
      * Convert a JavaScript type to a Prisma schema type

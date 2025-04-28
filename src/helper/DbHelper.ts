@@ -8,7 +8,7 @@ import {
     RelationManager,
     SchemaGenerator
 } from './db';
-import { IIdTypeOpts } from '../decorators/IdType';
+import { IIdMetaOpts, IIdTypeOpts } from '../decorators/IdType';
 
 /**
  * Database helper class
@@ -84,7 +84,7 @@ export class DbHelper {
      */
     static generateId(
         dbType: IDbConfigParams['db_type'],
-        modelMeta: Record<string, { annotationType: string, metadata: IIdTypeOpts }>
+        modelMeta: Record<string, { annotationType: string, metadata: IIdMetaOpts }>
     ): string {
         return DbUtils.generateId(dbType, modelMeta);
     }

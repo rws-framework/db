@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { RWSModel, OpModelType } from '../models/_model';
 
-type CascadingSetup = 'Cascade' | 'Restrict' | 'NoAction' | 'SetNull';
+export type CascadingSetup = 'Cascade' | 'Restrict' | 'NoAction' | 'SetNull';
 
-interface IRelationOpts {
+export interface IRelationOpts {
     required?: boolean
     key: string
     relationField: string
@@ -14,9 +14,9 @@ interface IRelationOpts {
     embed?: boolean
     useUuid?: boolean
     relationName?: string
-    cascade: {
-        onDelete: CascadingSetup,
-        onUpdate: CascadingSetup
+    cascade?: {
+        onDelete?: CascadingSetup,
+        onUpdate?: CascadingSetup
     }
 }
 
@@ -39,7 +39,12 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: P
                 relationName: relationOptions.relationName ? 
                   relationOptions.relationName.toLowerCase() : 
                   `${target.constructor.name.toLowerCase()}_${key}_${relatedTo._collection.toLowerCase()}`
-            };                                        
+            };  
+            
+            if(relationOptions.required){
+                metaOpts.cascade.onDelete = 'Restrict';
+            }
+
             return metaOpts;
         });
 
@@ -53,4 +58,4 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: P
 
 
 export default Relation;
-export {IRelationOpts};
+

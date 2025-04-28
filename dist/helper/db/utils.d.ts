@@ -1,5 +1,5 @@
 import { IDbConfigParams } from '../../types/DbConfigHandler';
-import { IIdTypeOpts } from '../../decorators/IdType';
+import { IIdMetaOpts } from '../../decorators/IdType';
 /**
  * Utility functions for database operations
  */
@@ -17,8 +17,8 @@ export declare class DbUtils {
      */
     static generateId(dbType: IDbConfigParams['db_type'], modelMeta: Record<string, {
         annotationType: string;
-        metadata: IIdTypeOpts;
-    }>): string;
+        metadata: IIdMetaOpts;
+    }>, debug?: boolean): string;
 }
 export declare const workspaceRootPath: string;
 export declare const moduleDirPath: string;

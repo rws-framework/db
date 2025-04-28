@@ -4,11 +4,14 @@ import { IRWSModelServices } from './IRWSModelServices';
 import { RelOneMetaType, RelManyMetaType } from '../types/RelationTypes';
 import { DBService } from '../../services/DBService';
 import type { RWSModel } from '../core/RWSModel';
+import { ISuperTagData } from '../../decorators/RWSCollection';
 export interface OpModelType<T> {
     new (data?: any | null): T;
     services: IRWSModelServices;
     name: string;
     _collection: string;
+    _NO_ID: boolean;
+    _SUPER_TAGS: ISuperTagData[];
     _RELATIONS: {
         [key: string]: boolean;
     };

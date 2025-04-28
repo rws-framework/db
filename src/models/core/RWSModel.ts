@@ -10,6 +10,7 @@ import { TimeSeriesUtils } from '../utils/TimeSeriesUtils';
 import { ModelUtils } from '../utils/ModelUtils';
 // import timeSeriesModel from './TimeSeriesModel';      
 import { DBService } from '../../services/DBService';
+import { ISuperTagData } from '../../decorators/RWSCollection';
 
 class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
@@ -19,6 +20,8 @@ class RWSModel<T> implements IModel {
     id: string | number;
     static _collection: string = null;
     static _RELATIONS = {};
+    static _NO_ID = false;
+    static _SUPER_TAGS: ISuperTagData[] = [];
     static _BANNED_KEYS = ['_collection'];
     static allModels: OpModelType<any>[] = [];
     static _CUT_KEYS: string[] = [];

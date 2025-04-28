@@ -1,4 +1,6 @@
+import { IDbOpts } from '../../models/interfaces/IDbOpts';
 import { ITrackerMetaOpts } from '../../models/_model';
+import { IIdMetaOpts } from 'src/decorators/IdType';
 
 /**
  * Handles type conversion for database schema generation
@@ -7,9 +9,10 @@ export class TypeConverter {
     /**
      * Convert a JavaScript type to a Prisma schema type
      */
-    static toConfigCase(modelType: ITrackerMetaOpts, dbType: string = 'mongodb'): string {
+    static toConfigCase(modelType: ITrackerMetaOpts | IIdMetaOpts, dbType: string = 'mongodb', isId: boolean = false): string {
         const type = modelType.type;
-        let input = type.name;
+        let input = type.name;    
+            
 
         // Handle basic types
         if (input == 'Number') {
@@ -43,7 +46,13 @@ export class TypeConverter {
         const restOfString = input.slice(1);
         let resultField = firstChar + restOfString;
 
-        if (modelType.isArray) {
+        if(isId){
+            return dbType === 'mongodb' ? 'String' : 'Int';
+        }
+
+        const trackerModelType = modelType as ITrackerMetaOpts;
+
+        if (trackerModelType.isArray) {
             // Handle arrays differently based on database type
             if (dbType === 'mysql') {
                 // For MySQL, we don't append [] as it doesn't support native arrays
@@ -57,18 +66,6 @@ export class TypeConverter {
             }
         }
 
-        // Apply any database-specific type modifiers from tags
-        if (modelType.tags && modelType.tags.length > 0) {
-            // Handle specific database type modifiers from tags
-            // For example, if a tag specifies a VARCHAR length or TEXT type
-            for (const tag of modelType.tags) {
-                if (tag.startsWith('db.')) {
-                    // This is a database-specific type modifier
-                    // We'll handle it in the generateModelSections method
-                }
-            }
-        }
-
         return resultField;
     }
 
@@ -78,7 +75,7 @@ export class TypeConverter {
      * @param dbType The database type
      * @returns Array of tags to apply to the field
      */
-    static processTypeOptions(metadata: ITrackerMetaOpts, dbType: string): string[] {
+    static processTypeOptions(metadata: { tags: string[], dbOptions: IDbOpts['dbOptions'] }, dbType: string): string[] {
         const tags: string[] = [...(metadata.tags || [])];
 
         // Extract any database-specific options from the metadata

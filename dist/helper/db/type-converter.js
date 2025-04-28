@@ -8,7 +8,7 @@ class TypeConverter {
     /**
      * Convert a JavaScript type to a Prisma schema type
      */
-    static toConfigCase(modelType, dbType = 'mongodb') {
+    static toConfigCase(modelType, dbType = 'mongodb', isId = false) {
         const type = modelType.type;
         let input = type.name;
         // Handle basic types
@@ -38,7 +38,11 @@ class TypeConverter {
         const firstChar = input.charAt(0).toUpperCase();
         const restOfString = input.slice(1);
         let resultField = firstChar + restOfString;
-        if (modelType.isArray) {
+        if (isId) {
+            return dbType === 'mongodb' ? 'String' : 'Int';
+        }
+        const trackerModelType = modelType;
+        if (trackerModelType.isArray) {
             // Handle arrays differently based on database type
             if (dbType === 'mysql') {
                 // For MySQL, we don't append [] as it doesn't support native arrays
@@ -51,17 +55,6 @@ class TypeConverter {
             }
             else {
                 resultField += '[]';
-            }
-        }
-        // Apply any database-specific type modifiers from tags
-        if (modelType.tags && modelType.tags.length > 0) {
-            // Handle specific database type modifiers from tags
-            // For example, if a tag specifies a VARCHAR length or TEXT type
-            for (const tag of modelType.tags) {
-                if (tag.startsWith('db.')) {
-                    // This is a database-specific type modifier
-                    // We'll handle it in the generateModelSections method
-                }
             }
         }
         return resultField;

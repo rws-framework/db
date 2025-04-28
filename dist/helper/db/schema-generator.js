@@ -46,12 +46,19 @@ datasource db {
         const dbType = configService.get('db_type') || 'mongodb';
         const modelName = model._collection;
         section += `model ${modelName} {\n`;
-        section += `\t${utils_1.DbUtils.generateId(dbType, modelMetadatas)}\n`;
+        if (!model._NO_ID) {
+            section += `\t${utils_1.DbUtils.generateId(dbType, modelMetadatas, false)}\n`;
+        }
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
             let requiredString = modelMetadata.required ? '' : '?';
             const annotationType = modelMetadatas[key].annotationType;
-            if (key === 'id') {
+            let indexedId = false;
+            if (model._NO_ID) {
+                indexedId = true;
+                requiredString = '';
+            }
+            if (key === 'id' && !indexedId) {
                 continue;
             }
             if (annotationType === 'Relation') {
@@ -70,40 +77,44 @@ datasource db {
                 const relationIndex = relation_manager_1.RelationManager.getRelationCounter(relationKey);
                 const relationName = relation_manager_1.RelationManager.getShortenedRelationName(modelName, relatedModelName, relationIndex);
                 const mapName = relationName;
+                const relatedModelMetadatas = await _model_1.RWSModel.getModelAnnotations(relatedModel);
+                const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
+                const relatedToField = modelMetadata.relatedToField || 'id';
+                const bindingFieldExists = !!modelMetadatas[relationFieldName];
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist
-                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", map: "${mapName}")\n`;
+                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
                 }
                 else {
-                    const relationFieldName = key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
-                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${modelMetadata.relatedToField || 'id'}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
-                    // Add relation field with appropriate type based on database
-                    if (dbType === 'mongodb') {
-                        section += `\t${relationFieldName} String${requiredString} @db.ObjectId\n`;
-                    }
-                    else if (dbType === 'mysql') {
-                        // For MySQL, determine the type based on the related model's ID type
-                        const useUuid = relationMeta.useUuid || false;
-                        if (useUuid) {
+                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
+                    if (!bindingFieldExists) {
+                        const relatedFieldMeta = relatedModelMetadatas[relatedToField];
+                        if (!relatedFieldMeta.metadata.required) {
+                            requiredString = '';
+                        }
+                        let relatedFieldType = type_converter_1.TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true);
+                        if (relatedToField === 'id' && dbType !== 'mongodb') {
+                            relatedFieldType = 'Int';
+                        }
+                        // Add relation field with appropriate type based on database
+                        if (dbType === 'mongodb') {
+                            section += `\t${relationFieldName} String${requiredString} @db.ObjectId\n`;
+                        }
+                        else if (dbType === 'mysql') {
+                            // For MySQL, determine the type based on the related model's ID type
+                            section += `\t${relationFieldName} ${relatedFieldType}${requiredString}\n`;
+                        }
+                        else if (dbType === 'postgresql' || dbType === 'postgres') {
+                            if (relatedFieldType === 'String') {
+                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString} @db.Uuid\n`;
+                            }
+                            else {
+                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString}\n`;
+                            }
+                        }
+                        else {
                             section += `\t${relationFieldName} String${requiredString}\n`;
                         }
-                        else {
-                            section += `\t${relationFieldName} Int${requiredString}\n`;
-                        }
-                    }
-                    else if (dbType === 'postgresql' || dbType === 'postgres') {
-                        // For PostgreSQL, use appropriate types
-                        const useUuid = relationMeta.useUuid || false;
-                        if (useUuid) {
-                            section += `\t${relationFieldName} String${requiredString} @db.Uuid\n`;
-                        }
-                        else {
-                            section += `\t${relationFieldName} Int${requiredString}\n`;
-                        }
-                    }
-                    else {
-                        // Default for other databases
-                        section += `\t${relationFieldName} String${requiredString}\n`;
                     }
                 }
                 relation_manager_1.RelationManager.completeRelation(relationKey, relationIndex);
@@ -140,9 +151,6 @@ datasource db {
             else if (annotationType === 'TrackType') {
                 const trackMeta = modelMetadata;
                 const tags = trackMeta.tags.map((item) => '@' + item);
-                if (modelName === 'chat_room') {
-                    console.log({ trackMeta, key });
-                }
                 if (trackMeta.unique) {
                     const fieldDetail = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
                     tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
@@ -153,8 +161,12 @@ datasource db {
                 // Process any database-specific options from the metadata
                 const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions(trackMeta, dbType);
                 tags.push(...dbSpecificTags);
-                section += `\t${key} ${type_converter_1.TypeConverter.toConfigCase(trackMeta, dbType)}${requiredString} ${tags.join(' ')}\n`;
+                section += `\t${key} ${type_converter_1.TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
             }
+        }
+        for (const superTag of model._SUPER_TAGS) {
+            const mapStr = superTag.map ? `, map: "${superTag.map}"` : '';
+            section += `\t@@${superTag.tagType}([${superTag.fields.join(', ')}]${mapStr})\n`;
         }
         section += '}\n';
         return section;

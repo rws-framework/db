@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { RWSModel, OpModelType } from '../models/_model';
-interface InverseRelationOpts {
+export interface InverseRelationOpts {
     key: string;
     inversionModel: OpModelType<RWSModel<any>>;
     foreignKey: string;
@@ -10,4 +10,3 @@ interface InverseRelationOpts {
 }
 declare function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, relationOptions?: Partial<InverseRelationOpts>): (target: any, key: string) => void;
 export default InverseRelation;
-export { InverseRelationOpts };
