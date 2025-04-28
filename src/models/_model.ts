@@ -11,7 +11,7 @@ import {
     RelManyMetaType,
     RWSModel,
     TrackType,
-    IMetaOpts
+    ITrackerMetaOpts
 } from './index';
 
 export {
@@ -26,5 +26,5 @@ export type {
     RelationBindType,
     RelOneMetaType,
     RelManyMetaType,    
-    IMetaOpts
+    ITrackerMetaOpts
 };

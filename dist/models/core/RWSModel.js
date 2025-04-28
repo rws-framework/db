@@ -94,7 +94,7 @@ class RWSModel {
                     continue;
                 }
                 const relMeta = relManyData[key];
-                const relationEnabled = RelationUtils_1.RelationUtils.checkRelEnabled(this, relMeta.key);
+                const relationEnabled = !RelationUtils_1.RelationUtils.checkRelDisabled(this, relMeta.key);
                 if (relationEnabled) {
                     this[relMeta.key] = await relMeta.inversionModel.findBy({
                         conditions: {
@@ -110,7 +110,7 @@ class RWSModel {
                     continue;
                 }
                 const relMeta = relOneData[key];
-                const relationEnabled = RelationUtils_1.RelationUtils.checkRelEnabled(this, relMeta.key);
+                const relationEnabled = !RelationUtils_1.RelationUtils.checkRelDisabled(this, relMeta.key);
                 if (!data[relMeta.hydrationField] && relMeta.required) {
                     throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`);
                 }
@@ -373,8 +373,8 @@ class RWSModel {
     loadModels() {
         return RWSModel.loadModels();
     }
-    checkRelEnabled(key) {
-        return RelationUtils_1.RelationUtils.checkRelEnabled(this, key);
+    checkRelDisabled(key) {
+        return RelationUtils_1.RelationUtils.checkRelDisabled(this, key);
     }
     static setServices(services) {
         this.allModels = services.configService.get('db_models');

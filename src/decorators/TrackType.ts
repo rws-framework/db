@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { ITrackerOpts } from '../models/interfaces/ITrackerOpts';
   
-interface IMetaOpts extends ITrackerOpts{
+export interface ITrackerMetaOpts extends ITrackerOpts{
     type: any,
     tags: string[],
 }
@@ -25,7 +25,7 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
     const required = opts.required;
     const isArray = opts.isArray;
   
-    const metaOpts: IMetaOpts = {type, tags, required, isArray};
+    const metaOpts: ITrackerMetaOpts = {type, tags, required, isArray};
   
     if(opts.relatedToField && opts.relatedTo){
         metaOpts.relatedToField = opts.relatedToField;      
@@ -46,6 +46,10 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
     if(opts.dbOptions){
         metaOpts.dbOptions = opts.dbOptions;
     }
+
+    if(opts.unique){
+        metaOpts.unique = opts.unique;
+    }
   
     //const resolvedType = typeof type === 'function' ? type() : type;   
     
@@ -59,4 +63,3 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
 }
 
 export default TrackType;
-export {IMetaOpts};

@@ -58,7 +58,7 @@ declare class RWSModel<T> implements IModel {
     static create<T extends RWSModel<T>>(this: new () => T, data: any): Promise<T>;
     static loadModels(): OpModelType<any>[];
     loadModels(): OpModelType<any>[];
-    private checkRelEnabled;
+    private checkRelDisabled;
     static setServices(services: IRWSModelServices): void;
     getDb(): DBService;
     static getDb(): DBService;

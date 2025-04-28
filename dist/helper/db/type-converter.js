@@ -81,10 +81,10 @@ class TypeConverter {
             // Handle MySQL-specific options
             if (dbType === 'mysql' && metadata.dbOptions.mysql) {
                 if (metadata.dbOptions.mysql.useText) {
-                    tags.push('db.Text');
+                    tags.push('@db.Text');
                 }
                 else if (metadata.dbOptions.mysql.maxLength) {
-                    tags.push(`db.VarChar(${metadata.dbOptions.mysql.maxLength})`);
+                    tags.push(`@db.VarChar(${metadata.dbOptions.mysql.maxLength})`);
                 }
                 if (metadata.dbOptions.mysql.useUuid && ((_a = metadata.tags) === null || _a === void 0 ? void 0 : _a.includes('id'))) {
                     tags.push('default(uuid())');
@@ -93,17 +93,17 @@ class TypeConverter {
             // Handle PostgreSQL-specific options
             if ((dbType === 'postgresql' || dbType === 'postgres') && metadata.dbOptions.postgres) {
                 if (metadata.dbOptions.postgres.useText) {
-                    tags.push('db.Text');
+                    tags.push('@db.Text');
                 }
                 if (metadata.dbOptions.postgres.useUuid && ((_b = metadata.tags) === null || _b === void 0 ? void 0 : _b.includes('id'))) {
-                    tags.push('default(uuid())');
-                    tags.push('db.Uuid');
+                    tags.push('@default(uuid())');
+                    tags.push('@db.Uuid');
                 }
             }
             // Handle MongoDB-specific options
             if (dbType === 'mongodb' && metadata.dbOptions.mongodb) {
                 if (metadata.dbOptions.mongodb.customType) {
-                    tags.push(`db.${metadata.dbOptions.mongodb.customType}`);
+                    tags.push(`@db.${metadata.dbOptions.mongodb.customType}`);
                 }
             }
         }

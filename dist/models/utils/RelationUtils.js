@@ -57,9 +57,9 @@ class RelationUtils {
         // Check if the property exists and is an object with an id property
         return !!model[key] && typeof model[key] === 'object' && model[key] !== null && 'id' in model[key];
     }
-    static checkRelEnabled(model, key) {
+    static checkRelDisabled(model, key) {
         return Object.keys(model.constructor._RELATIONS).includes(key) &&
-            model.constructor._RELATIONS[key] === true;
+            model.constructor._RELATIONS[key] === false;
     }
 }
 exports.RelationUtils = RelationUtils;

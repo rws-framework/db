@@ -1,4 +1,5 @@
-import { IDbConfigParams, IdGeneratorOptions } from '../../types/DbConfigHandler';
+import { IDbConfigParams } from '../../types/DbConfigHandler';
+import { IIdTypeOpts } from '../../decorators/IdType';
 /**
  * Utility functions for database operations
  */
@@ -14,7 +15,10 @@ export declare class DbUtils {
     /**
      * Generate an ID field based on the database type
      */
-    static generateId(dbType: IDbConfigParams['db_type'], options?: IdGeneratorOptions): string;
+    static generateId(dbType: IDbConfigParams['db_type'], modelMeta: Record<string, {
+        annotationType: string;
+        metadata: IIdTypeOpts;
+    }>): string;
 }
 export declare const workspaceRootPath: string;
 export declare const moduleDirPath: string;

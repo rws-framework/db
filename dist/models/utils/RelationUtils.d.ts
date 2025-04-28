@@ -10,5 +10,5 @@ export declare class RelationUtils {
         };
     };
     static hasRelation(model: RWSModel<any>, key: string): boolean;
-    static checkRelEnabled(model: RWSModel<any>, key: string): boolean;
+    static checkRelDisabled(model: RWSModel<any>, key: string): boolean;
 }

@@ -33,25 +33,35 @@ class DbUtils {
     /**
      * Generate an ID field based on the database type
      */
-    static generateId(dbType, options = {}) {
-        const { useUuid = false, customType } = options;
-        if (customType) {
-            return `id ${customType} @id`;
+    static generateId(dbType, modelMeta) {
+        let useUuid = false;
+        let field = 'id';
+        for (const key in modelMeta) {
+            const modelMetadata = modelMeta[key].metadata;
+            const annotationType = modelMeta[key].annotationType;
+            if (key !== 'id') {
+                if (annotationType == 'IdType') {
+                    field = key;
+                    if (modelMetadata.useUuid) {
+                        useUuid = true;
+                    }
+                }
+            }
         }
         switch (dbType) {
             case 'mongodb':
-                return 'id String @id @default(auto()) @map("_id") @db.ObjectId';
+                return `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
             case 'mysql':
                 return useUuid
-                    ? 'id String @id @default(uuid())'
-                    : 'id Int @id @default(autoincrement())';
+                    ? `${field} String @id @default(uuid())`
+                    : `${field} Int @id @default(autoincrement())`;
             case 'postgresql':
             case 'postgres':
                 return useUuid
-                    ? 'id String @id @default(uuid())'
-                    : 'id Int @id @default(autoincrement())';
+                    ? `${field} String @id @default(uuid())`
+                    : `${field} Int @id @default(autoincrement())`;
             case 'sqlite':
-                return 'id Int @id @default(autoincrement())';
+                return `${field} Int @id @default(autoincrement())`;
             default:
                 throw new Error(`DB type "${dbType}" is not supported!`);
         }

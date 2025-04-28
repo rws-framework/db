@@ -12,6 +12,8 @@ import { InverseRelationOpts } from '../../decorators/InverseRelation';
 import { DbUtils } from './utils';
 import { TypeConverter } from './type-converter';
 import { RelationManager } from './relation-manager';
+import { ITrackerOpts } from 'src/decorators';
+import { ITrackerMetaOpts } from 'src/decorators/TrackType';
 
 const log = console.log;
 
@@ -56,7 +58,7 @@ datasource db {
         const modelName: string = (model as any)._collection;
 
         section += `model ${modelName} {\n`;
-        section += `\t${DbUtils.generateId(dbType)}\n`;    
+        section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;    
 
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
@@ -153,17 +155,26 @@ datasource db {
                     section += `\t${key} String[]\n`;
                 }
             } else if (annotationType === 'TrackType') {
-                const tags: string[] = modelMetadata.tags.map((item: string) => '@' + item);
+                const trackMeta = modelMetadata as ITrackerMetaOpts;
+                const tags: string[] = trackMeta.tags.map((item: string) => '@' + item);                
+                if(modelName === 'chat_room'){
+                    console.log({trackMeta, key});
+                }
 
-                if (modelMetadata.isArray || modelMetadata.type.name === 'Array') {
+                if(trackMeta.unique){
+                    const fieldDetail: string | null = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
+                    tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
+                }
+
+                if (trackMeta.isArray || trackMeta.type.name === 'Array') {
                     requiredString = '';
                 }
 
                 // Process any database-specific options from the metadata
-                const dbSpecificTags = TypeConverter.processTypeOptions(modelMetadata, dbType);
+                const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta, dbType);
                 tags.push(...dbSpecificTags);
 
-                section += `\t${key} ${TypeConverter.toConfigCase(modelMetadata, dbType)}${requiredString} ${tags.join(' ')}\n`;
+                section += `\t${key} ${TypeConverter.toConfigCase(trackMeta, dbType)}${requiredString} ${tags.join(' ')}\n`;
             }
         }
 

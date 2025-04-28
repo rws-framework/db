@@ -5,7 +5,6 @@ const _DEFAULTS = { required: false, many: false, embed: false, cascade: { onDel
 function Relation(theModel, relationOptions = _DEFAULTS) {
     return function (target, key) {
         // Store the promise in metadata immediately
-        console.log('for', { key });
         const metadataPromise = Promise.resolve().then(() => {
             const relatedTo = theModel();
             const metaOpts = {

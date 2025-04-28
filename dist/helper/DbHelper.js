@@ -60,8 +60,8 @@ class DbHelper {
     /**
      * Generate an ID field based on the database type
      */
-    static generateId(dbType, options = {}) {
-        return db_1.DbUtils.generateId(dbType, options);
+    static generateId(dbType, modelMeta) {
+        return db_1.DbUtils.generateId(dbType, modelMeta);
     }
     /**
      * Convert a JavaScript type to a Prisma schema type

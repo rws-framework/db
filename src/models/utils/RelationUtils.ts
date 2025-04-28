@@ -69,8 +69,8 @@ export class RelationUtils {
         return !!model[key] && typeof model[key] === 'object' && model[key] !== null && 'id' in model[key];
     }
 
-    static checkRelEnabled(model: RWSModel<any>, key: string): boolean {
+    static checkRelDisabled(model: RWSModel<any>, key: string): boolean {
         return Object.keys((model.constructor as any)._RELATIONS).includes(key) && 
-               (model.constructor as any)._RELATIONS[key] === true;
+               (model.constructor as any)._RELATIONS[key] === false;
     }
 }

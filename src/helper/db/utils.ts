@@ -2,6 +2,7 @@ import { rwsPath } from '@rws-framework/console';
 import path from 'path';
 import fs from 'fs';
 import { IDbConfigParams, IdGeneratorOptions } from '../../types/DbConfigHandler';
+import { IIdTypeOpts } from '../../decorators/IdType';
 
 const workspaceRoot = rwsPath.findRootWorkspacePath();
 const moduleDir = path.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
@@ -36,31 +37,43 @@ export class DbUtils {
      */
     static generateId(
         dbType: IDbConfigParams['db_type'],
-        options: IdGeneratorOptions = {}
-    ): string {
-        const { useUuid = false, customType } = options;
+        modelMeta: Record<string, { annotationType: string, metadata: IIdTypeOpts }>
+    ): string {        
+        let useUuid = false;
+        let field = 'id';
+        
+        for (const key in modelMeta) {
+            const modelMetadata: IdGeneratorOptions = modelMeta[key].metadata;            
+            const annotationType: string = modelMeta[key].annotationType;            
 
-        if (customType) {
-            return `id ${customType} @id`;
+            if(key !== 'id'){
+                if(annotationType == 'IdType'){                    
+                    field = key;
+
+                    if(modelMetadata.useUuid){
+                        useUuid = true;
+                    }
+                }
+            }
         }
 
         switch (dbType) {
             case 'mongodb':
-                return 'id String @id @default(auto()) @map("_id") @db.ObjectId';
+                return `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
 
             case 'mysql':
                 return useUuid
-                    ? 'id String @id @default(uuid())'
-                    : 'id Int @id @default(autoincrement())';
+                    ? `${field} String @id @default(uuid())`
+                    : `${field} Int @id @default(autoincrement())`;
 
             case 'postgresql':
             case 'postgres':
                 return useUuid
-                    ? 'id String @id @default(uuid())'
-                    : 'id Int @id @default(autoincrement())';
+                    ? `${field} String @id @default(uuid())`
+                    : `${field} Int @id @default(autoincrement())`;
 
             case 'sqlite':
-                return 'id Int @id @default(autoincrement())';
+                return `${field} Int @id @default(autoincrement())`;
 
             default:
                 throw new Error(`DB type "${dbType}" is not supported!`);

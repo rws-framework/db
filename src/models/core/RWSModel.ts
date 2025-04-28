@@ -1,7 +1,7 @@
 import { IModel } from '../interfaces/IModel';
 import { IRWSModelServices } from '../interfaces/IRWSModelServices';
 import { OpModelType } from '../interfaces/OpModelType';
-import { TrackType, IMetaOpts } from '../../decorators';
+import { TrackType, ITrackerMetaOpts } from '../../decorators';
 import { FieldsHelper } from '../../helper/FieldsHelper';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { RelationUtils } from '../utils/RelationUtils';
@@ -120,7 +120,7 @@ class RWSModel<T> implements IModel {
 
                 const relMeta = relManyData[key];  
         
-                const relationEnabled = RelationUtils.checkRelEnabled(this, relMeta.key);
+                const relationEnabled = !RelationUtils.checkRelDisabled(this, relMeta.key);
                 if (relationEnabled) {                                
                     this[relMeta.key] = await relMeta.inversionModel.findBy({
                         conditions: {
@@ -138,7 +138,7 @@ class RWSModel<T> implements IModel {
                 }
 
                 const relMeta = relOneData[key];          
-                const relationEnabled = RelationUtils.checkRelEnabled(this, relMeta.key);
+                const relationEnabled = !RelationUtils.checkRelDisabled(this, relMeta.key);
                 
                 if(!data[relMeta.hydrationField] && relMeta.required){
                     throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`)
@@ -497,8 +497,8 @@ class RWSModel<T> implements IModel {
         return RWSModel.loadModels();
     }
 
-    private checkRelEnabled(key: string): boolean {
-        return RelationUtils.checkRelEnabled(this, key);
+    private checkRelDisabled(key: string): boolean {
+        return RelationUtils.checkRelDisabled(this, key);
     }
 
     public static setServices(services: IRWSModelServices){

@@ -46,7 +46,7 @@ datasource db {
         const dbType = configService.get('db_type') || 'mongodb';
         const modelName = model._collection;
         section += `model ${modelName} {\n`;
-        section += `\t${utils_1.DbUtils.generateId(dbType)}\n`;
+        section += `\t${utils_1.DbUtils.generateId(dbType, modelMetadatas)}\n`;
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
             let requiredString = modelMetadata.required ? '' : '?';
@@ -138,14 +138,22 @@ datasource db {
                 }
             }
             else if (annotationType === 'TrackType') {
-                const tags = modelMetadata.tags.map((item) => '@' + item);
-                if (modelMetadata.isArray || modelMetadata.type.name === 'Array') {
+                const trackMeta = modelMetadata;
+                const tags = trackMeta.tags.map((item) => '@' + item);
+                if (modelName === 'chat_room') {
+                    console.log({ trackMeta, key });
+                }
+                if (trackMeta.unique) {
+                    const fieldDetail = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
+                    tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
+                }
+                if (trackMeta.isArray || trackMeta.type.name === 'Array') {
                     requiredString = '';
                 }
                 // Process any database-specific options from the metadata
-                const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions(modelMetadata, dbType);
+                const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions(trackMeta, dbType);
                 tags.push(...dbSpecificTags);
-                section += `\t${key} ${type_converter_1.TypeConverter.toConfigCase(modelMetadata, dbType)}${requiredString} ${tags.join(' ')}\n`;
+                section += `\t${key} ${type_converter_1.TypeConverter.toConfigCase(trackMeta, dbType)}${requiredString} ${tags.join(' ')}\n`;
             }
         }
         section += '}\n';

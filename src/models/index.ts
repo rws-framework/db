@@ -4,7 +4,7 @@ import { OpModelType } from './interfaces/OpModelType';
 import { RelationBindType, RelOneMetaType, RelManyMetaType } from './types/RelationTypes';
 import { RWSModel } from './core/RWSModel';
 // import TimeSeriesModel from './core/TimeSeriesModel';
-import { TrackType, IMetaOpts } from '../decorators';
+import { TrackType, ITrackerMetaOpts } from '../decorators';
 
 export {
     IModel,
@@ -16,5 +16,5 @@ export {
     RWSModel,
     // TimeSeriesModel,
     TrackType,
-    IMetaOpts
+    ITrackerMetaOpts
 };

@@ -7,7 +7,7 @@ import {
   TrackType, 
   IdType,
   InverseTimeSeries, 
-  IMetaOpts,
+  ITrackerMetaOpts,
   ITrackerOpts
 } from './decorators';
 
@@ -23,7 +23,7 @@ import { RWSCollection, IRWSCollectionMeta, IRWSCollectionOpts } from "./decorat
 export type {
    IRWSCollectionMeta, IRWSCollectionOpts,
    IRWSModel,
-   IMetaOpts,
+   ITrackerMetaOpts,
    ITrackerOpts,
    OpModelType,
    IDbConfigHandler,

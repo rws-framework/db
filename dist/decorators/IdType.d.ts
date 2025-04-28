@@ -1,8 +1,6 @@
 import 'reflect-metadata';
 import { ITrackerOpts } from '../models/interfaces/ITrackerOpts';
-interface IIdTypeOpts {
-    dbOptions?: ITrackerOpts['dbOptions'];
-}
+import { IIdTypeOpts } from '../models/interfaces/IIdTypeOpts';
 interface IMetaOpts extends ITrackerOpts {
     type: any;
 }

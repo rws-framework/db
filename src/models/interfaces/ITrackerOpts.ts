@@ -1,26 +1,13 @@
+import { IDbOpts } from "./IDbOpts";
 import { OpModelType } from "./OpModelType";
 
-export interface ITrackerOpts{
+export interface ITrackerOpts extends IDbOpts {
     required?: boolean,
+    unique?: boolean | string,
     isArray?: boolean,
     relationField?: string,
     relatedToField?: string,
     relatedTo?: OpModelType<any>,
     inversionModel?: OpModelType<any>,
-    relationName?: string,
-    dbOptions?: {
-      mysql?: {
-        useType?: string;
-        useText?: boolean;
-        maxLength?: number;
-        useUuid?: boolean;
-      };
-      postgres?: {
-        useText?: boolean;
-        useUuid?: boolean;
-      };
-      mongodb?: {
-        customType?: string;
-      };
-    }
+    relationName?: string    
   }

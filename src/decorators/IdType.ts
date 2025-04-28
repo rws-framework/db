@@ -1,22 +1,6 @@
 import 'reflect-metadata';
 import { ITrackerOpts } from '../models/interfaces/ITrackerOpts';
-
-interface IIdTypeOpts{
-    dbOptions?: {
-        mysql?: {
-            useText?: boolean;
-            maxLength?: number;
-            useUuid?: boolean;
-        };
-        postgres?: {
-            useText?: boolean;
-            useUuid?: boolean;
-        };
-        mongodb?: {
-            customType?: string;
-        };
-    }
-}
+import { IIdTypeOpts } from '../models/interfaces/IIdTypeOpts';
   
 interface IMetaOpts extends ITrackerOpts {
     type: any,
