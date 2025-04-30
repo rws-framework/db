@@ -21,7 +21,7 @@ export interface OpModelType<T> {
     checkForInclusionWithThrow: (className: string) => void;
     checkForInclusion: (className: string) => boolean;
     findOneBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T | null>;
-    find<T extends RWSModel<T>>(this: OpModelType<T>, id: string, findParams?: Omit<FindByType, 'conditions'>): Promise<T | null>;
+    find<T extends RWSModel<T>>(this: OpModelType<T>, id: string | number, findParams?: Omit<FindByType, 'conditions'>): Promise<T | null>;
     findBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T[]>;
     paginate<T extends RWSModel<T>>(this: OpModelType<T>, paginateParams?: IPaginationParams, findParams?: FindByType): Promise<T[]>;
     delete<T extends RWSModel<T>>(this: OpModelType<T>, conditions: any): Promise<void>;

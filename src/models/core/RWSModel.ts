@@ -113,7 +113,8 @@ class RWSModel<T> implements IModel {
         });      
     
         const seriesHydrationfields: string[] = []; 
-        
+
+
         if (allowRelations) {
             // Handle many-to-many relations
             for (const key in relManyData) { 
@@ -157,15 +158,17 @@ class RWSModel<T> implements IModel {
 
                 const cutKeys = ((this.constructor as any)._CUT_KEYS as string[]);
 
-                if(!cutKeys.includes(relMeta.hydrationField)){
+                const trackedField = Object.keys((await ModelUtils.getModelAnnotations(this.constructor as any))).includes(relMeta.hydrationField);
+                
+                if(!cutKeys.includes(relMeta.hydrationField) && !trackedField){
                     cutKeys.push(relMeta.hydrationField)
                 }
             }
         }
     
         // Process regular fields and time series
-        for (const key in data) {
-            if (data.hasOwnProperty(key)) {                        
+        for (const key in data) {         
+            if (data.hasOwnProperty(key)) {                   
                 if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
                     continue;
                 }
@@ -176,7 +179,8 @@ class RWSModel<T> implements IModel {
     
                 if (seriesHydrationfields.includes(key)) {
                     continue;
-                }                    
+                }                   
+              
     
                 const timeSeriesMetaData = timeSeriesIds[key];  
           
@@ -411,7 +415,7 @@ class RWSModel<T> implements IModel {
 
     public static async find<T extends RWSModel<T>>(
         this: OpModelType<T>,
-        id: string,        
+        id: string | number,        
         findParams: Omit<FindByType, 'conditions'> = null
     ): Promise<T | null> {        
         const ordering = findParams?.ordering ?? null;
@@ -445,12 +449,14 @@ class RWSModel<T> implements IModel {
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
         try {
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering);   
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering);        
+
             if (dbData.length) {
                 const instanced: T[] = [];
         
                 for (const data of dbData) { 
                     const inst: T = new (this as { new(): T })();
+
                     instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as T);
                 }
         

@@ -27,7 +27,7 @@ export interface OpModelType<T> {
     ): Promise<T | null>;
     find<T extends RWSModel<T>>(
         this: OpModelType<T>,
-        id: string,        
+        id: string | number,        
         findParams?: Omit<FindByType, 'conditions'>
     ): Promise<T | null>;
     findBy<T extends RWSModel<T>>(

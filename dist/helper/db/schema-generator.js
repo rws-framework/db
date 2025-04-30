@@ -151,16 +151,28 @@ datasource db {
             else if (annotationType === 'TrackType') {
                 const trackMeta = modelMetadata;
                 const tags = trackMeta.tags.map((item) => '@' + item);
+                if (key === 'id' && model._NO_ID && !model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes('id'))) {
+                    continue;
+                }
                 if (trackMeta.unique) {
                     const fieldDetail = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
                     tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
                 }
+                if (!trackMeta.required) {
+                    requiredString = '?';
+                }
                 if (trackMeta.isArray || trackMeta.type.name === 'Array') {
+                    requiredString = '';
+                }
+                if (model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes(key))) {
                     requiredString = '';
                 }
                 // Process any database-specific options from the metadata
                 const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions(trackMeta, dbType);
                 tags.push(...dbSpecificTags);
+                if (modelName === 'category_translation' && key === 'meta_keywords') {
+                    console.log({ requiredString, trackMeta });
+                }
                 section += `\t${key} ${type_converter_1.TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
             }
         }

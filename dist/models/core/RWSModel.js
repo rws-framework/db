@@ -122,7 +122,8 @@ class RWSModel {
                     this[relMeta.key] = await newRelModel.save();
                 }
                 const cutKeys = this.constructor._CUT_KEYS;
-                if (!cutKeys.includes(relMeta.hydrationField)) {
+                const trackedField = Object.keys((await ModelUtils_1.ModelUtils.getModelAnnotations(this.constructor))).includes(relMeta.hydrationField);
+                if (!cutKeys.includes(relMeta.hydrationField) && !trackedField) {
                     cutKeys.push(relMeta.hydrationField);
                 }
             }

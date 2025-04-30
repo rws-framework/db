@@ -178,20 +178,36 @@ datasource db {
                 }
             } else if (annotationType === 'TrackType') {
                 const trackMeta = modelMetadata as ITrackerMetaOpts;
-                const tags: string[] = trackMeta.tags.map((item: string) => '@' + item);                           
+                const tags: string[] = trackMeta.tags.map((item: string) => '@' + item);  
+                
+                if(key === 'id' && model._NO_ID && !model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes('id'))){
+                    continue;
+                }
        
                 if(trackMeta.unique){
                     const fieldDetail: string | null = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
                     tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
                 }
 
+                if(!trackMeta.required){
+                    requiredString = '?';
+                }
+
                 if (trackMeta.isArray || trackMeta.type.name === 'Array') {
+                    requiredString = '';
+                }
+
+                if(model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes(key))){
                     requiredString = '';
                 }
 
                 // Process any database-specific options from the metadata
                 const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta as { tags: string[], dbOptions: IDbOpts['dbOptions'] }, dbType);
                 tags.push(...dbSpecificTags);
+
+                if(modelName === 'category_translation' && key === 'meta_keywords'){
+                    console.log({requiredString, trackMeta});
+                }
 
                 section += `\t${key} ${TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
             }

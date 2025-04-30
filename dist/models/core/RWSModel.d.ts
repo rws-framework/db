@@ -54,7 +54,7 @@ declare class RWSModel<T> implements IModel {
     sanitizeDBData(data: any): any;
     static watchCollection<T extends RWSModel<T>>(this: OpModelType<T>, preRun: () => void): Promise<any>;
     static findOneBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T | null>;
-    static find<T extends RWSModel<T>>(this: OpModelType<T>, id: string, findParams?: Omit<FindByType, 'conditions'>): Promise<T | null>;
+    static find<T extends RWSModel<T>>(this: OpModelType<T>, id: string | number, findParams?: Omit<FindByType, 'conditions'>): Promise<T | null>;
     static findBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T[]>;
     static delete<T extends RWSModel<T>>(this: OpModelType<T>, conditions: any): Promise<void>;
     delete<T extends RWSModel<T>>(): Promise<void>;
