@@ -47,7 +47,7 @@ datasource db {
         const modelName = model._collection;
         section += `model ${modelName} {\n`;
         if (!model._NO_ID) {
-            section += `\t${utils_1.DbUtils.generateId(dbType, modelMetadatas, false)}\n`;
+            section += `\t${utils_1.DbUtils.generateId(dbType, modelMetadatas)}\n`;
         }
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
@@ -81,6 +81,9 @@ datasource db {
                 const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
                 const relatedToField = modelMetadata.relatedToField || 'id';
                 const bindingFieldExists = !!modelMetadatas[relationFieldName];
+                if (modelMetadata.required === false) {
+                    requiredString = '?';
+                }
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist
                     section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;

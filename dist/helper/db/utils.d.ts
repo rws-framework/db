@@ -18,7 +18,7 @@ export declare class DbUtils {
     static generateId(dbType: IDbConfigParams['db_type'], modelMeta: Record<string, {
         annotationType: string;
         metadata: IIdMetaOpts;
-    }>, debug?: boolean): string;
+    }>, optional?: boolean): string;
 }
 export declare const workspaceRootPath: string;
 export declare const moduleDirPath: string;

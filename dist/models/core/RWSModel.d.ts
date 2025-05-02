@@ -4,6 +4,8 @@ import { OpModelType } from '../interfaces/OpModelType';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { DBService } from '../../services/DBService';
 import { ISuperTagData } from '../../decorators/RWSCollection';
+import { RelManyMetaType, RelOneMetaType } from '../types/RelationTypes';
+import { IRWSModel } from '../../types/IRWSModel';
 declare class RWSModel<T> implements IModel {
     static services: IRWSModelServices;
     [key: string]: any;
@@ -30,9 +32,9 @@ declare class RWSModel<T> implements IModel {
     _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean): Promise<T>;
     private getModelScalarFields;
     private getRelationOneMeta;
-    static getRelationOneMeta(model: any, classFields: string[]): Promise<import("..").RelOneMetaType<import("../..").IRWSModel>>;
+    static getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
     private getRelationManyMeta;
-    static getRelationManyMeta(model: any, classFields: string[]): Promise<import("..").RelManyMetaType<import("../..").IRWSModel>>;
+    static getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
     static paginate<T extends RWSModel<T>>(this: OpModelType<T>, paginateParams: IPaginationParams, findParams?: FindByType): Promise<T[]>;
     toMongo(): Promise<any>;
     getCollection(): string | null;

@@ -11,6 +11,9 @@ import { ModelUtils } from '../utils/ModelUtils';
 // import timeSeriesModel from './TimeSeriesModel';      
 import { DBService } from '../../services/DBService';
 import { ISuperTagData } from '../../decorators/RWSCollection';
+import { RelManyMetaType, RelOneMetaType } from '../types/RelationTypes';
+import { IRWSModel } from '../../types/IRWSModel';
+import { HydrateUtils } from '../utils/HydrateUtils';
 
 class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
@@ -97,9 +100,7 @@ class RWSModel<T> implements IModel {
     }
 
     public async _asyncFill(data: any, fullDataMode = false, allowRelations = true): Promise<T> {
-        const collections_to_models: {[key: string]: any} = {};           
-        const timeSeriesIds = TimeSeriesUtils.getTimeSeriesModelFields(this);
-    
+        const collections_to_models: {[key: string]: any} = {};               
         const classFields = FieldsHelper.getAllClassFields(this.constructor);        
     
         // Get both relation metadata types asynchronously
@@ -116,93 +117,16 @@ class RWSModel<T> implements IModel {
 
 
         if (allowRelations) {
-            // Handle many-to-many relations
-            for (const key in relManyData) { 
-                if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
-                    continue;
-                }
-
-                const relMeta = relManyData[key];  
-        
-                const relationEnabled = !RelationUtils.checkRelDisabled(this, relMeta.key);
-                if (relationEnabled) {                                
-                    this[relMeta.key] = await relMeta.inversionModel.findBy({
-                        conditions: {
-                            [relMeta.foreignKey]: data.id
-                        },
-                        allowRelations: false
-                    });    
-                }                                
-            }
-            
-            // Handle one-to-one relations
-            for (const key in relOneData) {      
-                if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
-                    continue;
-                }
-
-                const relMeta = relOneData[key];          
-                const relationEnabled = !RelationUtils.checkRelDisabled(this, relMeta.key);
-                
-                if(!data[relMeta.hydrationField] && relMeta.required){
-                    throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`)
-                }
-                
-                if (relationEnabled && data[relMeta.hydrationField]) {        
-                    this[relMeta.key] = await relMeta.model.find(data[relMeta.hydrationField], { allowRelations: false });    
-                }                                
-                else if(relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]){                    
-                    const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);                    
-                    this[relMeta.key] = await newRelModel.save();
-                }
-
-                const cutKeys = ((this.constructor as any)._CUT_KEYS as string[]);
-
-                const trackedField = Object.keys((await ModelUtils.getModelAnnotations(this.constructor as any))).includes(relMeta.hydrationField);
-                
-                if(!cutKeys.includes(relMeta.hydrationField) && !trackedField){
-                    cutKeys.push(relMeta.hydrationField)
-                }
-            }
+            await HydrateUtils.hydrateRelations(this, relManyData, relOneData, seriesHydrationfields, fullDataMode, data);
         }
     
         // Process regular fields and time series
-        for (const key in data) {         
-            if (data.hasOwnProperty(key)) {                   
-                if(!fullDataMode && (this as any).constructor._CUT_KEYS.includes(key)){
-                    continue;
-                }
-
-                if (Object.keys(relOneData).includes(key)) {               
-                    continue;
-                }                
-    
-                if (seriesHydrationfields.includes(key)) {
-                    continue;
-                }                   
-              
-    
-                const timeSeriesMetaData = timeSeriesIds[key];  
-          
-                if (timeSeriesMetaData) {
-                    this[key] = data[key];
-                    const seriesModel = collections_to_models[timeSeriesMetaData.collection];
-            
-                    const dataModels = await seriesModel.findBy({
-                        id: { in: data[key] }
-                    });                        
-    
-                    seriesHydrationfields.push(timeSeriesMetaData.hydrationField);
-            
-                    this[timeSeriesMetaData.hydrationField] = dataModels;
-                } else {
-                    this[key] = data[key];            
-                }        
-            }       
-        }     
+         await HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
     
         return this as any as T;
-    }    
+    }   
+
+    
 
     private getModelScalarFields(model: RWSModel<T>): string[] {
         return ModelUtils.getModelScalarFields(model);
@@ -449,7 +373,8 @@ class RWSModel<T> implements IModel {
         const collection = Reflect.get(this, '_collection');
         this.checkForInclusionWithThrow(this.name);
         try {
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering);        
+            const paginateParams =  findParams?.pagination ? findParams?.pagination : undefined;
+            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);        
 
             if (dbData.length) {
                 const instanced: T[] = [];

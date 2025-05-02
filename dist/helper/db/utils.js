@@ -34,7 +34,7 @@ class DbUtils {
     /**
      * Generate an ID field based on the database type
      */
-    static generateId(dbType, modelMeta, debug = false) {
+    static generateId(dbType, modelMeta, optional = false) {
         var _a, _b, _c, _d;
         let useUuid = false;
         let field = 'id';
@@ -46,9 +46,6 @@ class DbUtils {
                 if (annotationType == 'IdType') {
                     const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions({ tags: [], dbOptions: modelMetadata.dbOptions }, dbType);
                     tags.push(...dbSpecificTags);
-                    if (debug) {
-                        console.log({ modelMetadata: modelMetadata.dbOptions });
-                    }
                     field = key;
                     if ((_b = (_a = modelMetadata.dbOptions) === null || _a === void 0 ? void 0 : _a.mysql) === null || _b === void 0 ? void 0 : _b.useUuid) {
                         useUuid = true;
@@ -63,23 +60,27 @@ class DbUtils {
             }
         }
         let idString;
+        let reqStr = '';
+        if (optional) {
+            reqStr = '?';
+        }
         switch (dbType) {
             case 'mongodb':
-                idString = `${field} String @id @default(auto()) @map("_id") @db.ObjectId`;
+                idString = `${field} String${reqStr} @id @default(auto()) @map("_id") @db.ObjectId`;
                 break;
             case 'mysql':
                 idString = useUuid
-                    ? `${field} String @id @default(uuid())`
-                    : `${field} Int @id @default(autoincrement())`;
+                    ? `${field} String${reqStr} @id @default(uuid())`
+                    : `${field} Int${reqStr} @id @default(autoincrement())`;
                 break;
             case 'postgresql':
             case 'postgres':
                 idString = useUuid
-                    ? `${field} String @id @default(uuid())`
-                    : `${field} Int @id @default(autoincrement())`;
+                    ? `${field} String${reqStr} @id @default(uuid())`
+                    : `${field} Int${reqStr} @id @default(autoincrement())`;
                 break;
             case 'sqlite':
-                idString = `${field} Int @id @default(autoincrement())`;
+                idString = `${field} Int${reqStr} @id @default(autoincrement())`;
                 break;
         }
         if (tags.length) {
@@ -87,9 +88,6 @@ class DbUtils {
         }
         if (!idString) {
             throw new Error(`DB type "${dbType}" is not supported!`);
-        }
-        if (debug) {
-            console.log({ idString, useUuid });
         }
         return idString;
     }

@@ -62,7 +62,7 @@ datasource db {
         if(
             !model._NO_ID            
         ){
-            section += `\t${DbUtils.generateId(dbType, modelMetadatas, false)}\n`;
+            section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;
         }              
 
         for (const key in modelMetadatas) {
@@ -108,7 +108,11 @@ datasource db {
                 const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField  : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
 
                 const relatedToField = modelMetadata.relatedToField || 'id';
-                const bindingFieldExists = !!modelMetadatas[relationFieldName];          
+                const bindingFieldExists = !!modelMetadatas[relationFieldName];  
+                
+                if(modelMetadata.required === false){
+                    requiredString = '?';
+                }
 
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist

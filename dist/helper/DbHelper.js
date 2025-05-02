@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DbHelper = void 0;
+const console_1 = require("@rws-framework/console");
 const db_1 = require("./db");
 /**
  * Database helper class
@@ -26,6 +27,11 @@ class DbHelper {
      */
     static async pushDBModels(configService, dbService, leaveFile = false) {
         return db_1.SchemaGenerator.pushDBModels(configService, dbService, leaveFile);
+    }
+    static async migrateDBModels(configService, dbService, leaveFile = false) {
+        process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
+        const [_, schemaPath] = db_1.DbUtils.getSchemaDir();
+        await console_1.rwsShell.runCommand(`${db_1.DbUtils.detectInstaller()} prisma migrate dev --create-only --schema=${schemaPath}`, process.cwd());
     }
     /**
      * Generate model sections for the schema

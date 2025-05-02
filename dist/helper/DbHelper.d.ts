@@ -27,6 +27,7 @@ export declare class DbHelper {
      * @param leaveFile Whether to leave the schema file after generation
      */
     static pushDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile?: boolean): Promise<void>;
+    static migrateDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile?: boolean): Promise<void>;
     /**
      * Generate model sections for the schema
      * @param model The model to generate a section for

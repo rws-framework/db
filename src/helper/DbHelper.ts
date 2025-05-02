@@ -1,6 +1,7 @@
 import { IDbConfigHandler, IDbConfigParams, IdGeneratorOptions } from '../types/DbConfigHandler';
 import { OpModelType } from '../models/_model';
 import { DBService } from '../services/DBService';
+import { rwsShell } from '@rws-framework/console';
 
 import {
     DbUtils,
@@ -40,6 +41,14 @@ export class DbHelper {
      */
     static async pushDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void> {
         return SchemaGenerator.pushDBModels(configService, dbService, leaveFile);
+    }
+   
+    static async migrateDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void> {
+       process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
+       
+        const [_, schemaPath] = DbUtils.getSchemaDir();
+
+        await rwsShell.runCommand(`${DbUtils.detectInstaller()} prisma migrate dev --create-only --schema=${schemaPath}`, process.cwd());
     }
 
     /**
