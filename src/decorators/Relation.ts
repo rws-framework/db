@@ -20,13 +20,15 @@ export interface IRelationOpts {
     }
 }
 
-const _DEFAULTS: Partial<IRelationOpts> = { required: false, many: false, embed: false, cascade: { onDelete: 'SetNull', onUpdate: 'Cascade' }};
+const _DEFAULT_CASCADE = { onDelete: 'SetNull', onUpdate: 'Cascade' };
+
+const _DEFAULTS: Partial<IRelationOpts> = { required: false, many: false, embed: false, cascade: null};
   
 function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<IRelationOpts> = _DEFAULTS) {
     return function(target: any, key: string) {     
         // Store the promise in metadata immediately
         
-        const metadataPromise = Promise.resolve().then(() => {            
+        const metadataPromise = Promise.resolve().then(() => {          
             const relatedTo = theModel();
 
             const metaOpts: IRelationOpts = {

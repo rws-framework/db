@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
-const _DEFAULTS = { required: false, many: false, embed: false, cascade: { onDelete: 'SetNull', onUpdate: 'Cascade' } };
+const _DEFAULT_CASCADE = { onDelete: 'SetNull', onUpdate: 'Cascade' };
+const _DEFAULTS = { required: false, many: false, embed: false, cascade: null };
 function Relation(theModel, relationOptions = _DEFAULTS) {
     return function (target, key) {
         // Store the promise in metadata immediately

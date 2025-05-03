@@ -113,11 +113,13 @@ datasource db {
                     requiredString = '?';
                 }
 
+                const cascadeStr = cascadeOpts.length ? `, ${cascadeOpts.join(', ')}` : '' ;
+
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist
-                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
+                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}"${cascadeStr})\n`;
                 } else {                    
-                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}", ${cascadeOpts.join(', ')})\n`;
+                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}"${cascadeStr})\n`;
                     if(!bindingFieldExists){
                         const relatedFieldMeta = relatedModelMetadatas[relatedToField];
 
@@ -213,11 +215,37 @@ datasource db {
             }
         }
 
+        if(model._SUPER_TAGS.length){
+            section += '\n';
+        }
+
         for(const superTag of model._SUPER_TAGS){
 
             const mapStr = superTag.map ? `, map: "${superTag.map}"` : '';
 
-            section += `\t@@${superTag.tagType}([${superTag.fields.join(', ')}]${mapStr})\n`;
+            const superFields = [];
+        
+            for(const superField of superTag.fields){
+                const fieldMetadata = modelMetadatas[superField]['metadata'];
+       
+    
+                let pushed = false;
+
+                if(fieldMetadata.dbOptions && fieldMetadata.dbOptions.mysql && fieldMetadata.dbOptions.mysql.useType){                        
+                    switch(fieldMetadata.dbOptions.mysql.useType){
+                        case 'db.LongText': 
+                            superFields.push(`${superField}(length: 255)`);                                    
+                            pushed = true;
+                        break;
+                    }                    
+                }
+
+                if(!pushed){
+                    superFields.push(superField);
+                }
+            }
+            
+            section += `\t@@${superTag.tagType}([${superFields.join(', ')}]${mapStr})\n`;
         }
 
         section += '}\n';
