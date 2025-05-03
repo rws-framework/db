@@ -5,13 +5,16 @@ export interface IDbOpts {
             useText?: boolean;
             maxLength?: number;
             useUuid?: boolean;
+            params?: string[];
         };
         postgres?: {
             useText?: boolean;
             useUuid?: boolean;
+            params?: string[];
         };
         mongodb?: {
             customType?: string;
+            params?: string[];
         };
     };
 }

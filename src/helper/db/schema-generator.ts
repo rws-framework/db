@@ -15,7 +15,6 @@ import { RelationManager } from './relation-manager';
 import { ITrackerMetaOpts } from '../../decorators/TrackType';
 import { IDbOpts } from '../../models/interfaces/IDbOpts';
 
-const log = console.log;
 
 /**
  * Handles Prisma schema generation
@@ -204,14 +203,11 @@ datasource db {
                 if(model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes(key))){
                     requiredString = '';
                 }
-
+               
                 // Process any database-specific options from the metadata
                 const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta as { tags: string[], dbOptions: IDbOpts['dbOptions'] }, dbType);
                 tags.push(...dbSpecificTags);
-
-                if(modelName === 'category_translation' && key === 'meta_keywords'){
-                    console.log({requiredString, trackMeta});
-                }
+         
 
                 section += `\t${key} ${TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
             }
@@ -280,7 +276,7 @@ datasource db {
 
                 template += '\n\n' + modelSection;
 
-                log(chalk.green('[RWS]'), chalk.blue('Building DB Model'), model.name);
+                console.log(chalk.green('[RWS]'), chalk.blue('Building DB Model'), model.name);
             }
 
             const [schemaDir, schemaPath] = DbUtils.getSchemaDir();
@@ -298,7 +294,7 @@ datasource db {
             await rwsShell.runCommand(`${DbUtils.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
 
             leaveFile = false;
-            log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
+            console.log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
             if (!leaveFile) {
                 // fs.unlinkSync(schemaPath);

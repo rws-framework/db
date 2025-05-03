@@ -16,7 +16,24 @@ export class TypeConverter {
 
         // Handle basic types
         if (input == 'Number') {
-            input = 'Int';
+            let numberOverride = false;
+            if(modelType.dbOptions && modelType.dbOptions.mysql){
+                if(modelType.dbOptions.mysql.useType){
+                    if(['db.Float'].includes(modelType.dbOptions.mysql.useType)){
+                        input = 'Float';
+                        numberOverride = true;
+                    }
+
+                    if(['db.Decimal'].includes(modelType.dbOptions.mysql.useType)){
+                        input = 'Decimal';
+                        numberOverride = true;
+                    }
+                }
+            }
+            
+            if(!numberOverride){
+                input = 'Int';
+            }            
         }
 
         if (input == 'Object') {
@@ -64,7 +81,7 @@ export class TypeConverter {
             } else {
                 resultField += '[]';
             }
-        }
+        }        
 
         return resultField;
     }
@@ -83,10 +100,20 @@ export class TypeConverter {
         if (metadata.dbOptions) {
             // Handle MySQL-specific options
             if (dbType === 'mysql' && metadata.dbOptions.mysql) {
+                let tag = null;
+
+                if (metadata.dbOptions.mysql.useType && !metadata.dbOptions.mysql.useText) {
+                    const tagName = metadata.dbOptions.mysql.useType === 'VarChar' ?  'db.' + metadata.dbOptions.mysql.useType : metadata.dbOptions.mysql.useType;                    
+                    let tagParams = tagName === 'db.VarChar' && metadata.dbOptions.mysql.maxLength ? metadata.dbOptions.mysql.maxLength : (metadata.dbOptions.mysql?.params?.join(', ') || '');                    
+                    tag = `@${tagName}(${tagParams})`;                    
+                }
+
                 if (metadata.dbOptions.mysql.useText) {
                     tags.push('@db.Text');
-                } else if (metadata.dbOptions.mysql.maxLength) {
-                    tags.push(`@db.VarChar(${metadata.dbOptions.mysql.maxLength})`);
+                }
+
+                if(tag){
+                    tags.push(tag);
                 }
 
                 if (metadata.dbOptions.mysql.useUuid && metadata.tags?.includes('id')) {

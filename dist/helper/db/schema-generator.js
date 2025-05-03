@@ -11,7 +11,6 @@ const _model_1 = require("../../models/_model");
 const utils_1 = require("./utils");
 const type_converter_1 = require("./type-converter");
 const relation_manager_1 = require("./relation-manager");
-const log = console.log;
 /**
  * Handles Prisma schema generation
  */
@@ -173,9 +172,6 @@ datasource db {
                 // Process any database-specific options from the metadata
                 const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions(trackMeta, dbType);
                 tags.push(...dbSpecificTags);
-                if (modelName === 'category_translation' && key === 'meta_keywords') {
-                    console.log({ requiredString, trackMeta });
-                }
                 section += `\t${key} ${type_converter_1.TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
             }
         }
@@ -224,7 +220,7 @@ datasource db {
             for (const model of dbModels) {
                 const modelSection = await SchemaGenerator.generateModelSections(model, configService);
                 template += '\n\n' + modelSection;
-                log(chalk_1.default.green('[RWS]'), chalk_1.default.blue('Building DB Model'), model.name);
+                console.log(chalk_1.default.green('[RWS]'), chalk_1.default.blue('Building DB Model'), model.name);
             }
             const [schemaDir, schemaPath] = utils_1.DbUtils.getSchemaDir();
             if (!fs_1.default.existsSync(schemaDir)) {
@@ -236,7 +232,7 @@ datasource db {
             fs_1.default.writeFileSync(schemaPath, template);
             await console_1.rwsShell.runCommand(`${utils_1.DbUtils.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
             leaveFile = false;
-            log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
+            console.log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
             if (!leaveFile) {
                 // fs.unlinkSync(schemaPath);
             }

@@ -15,8 +15,6 @@ const getCachedPath = (key) => path.resolve(rwsCliConfigDir, key);
 
 const currentCwd = path.resolve(__dirname);
 
-console.log({params})
-
 
 const commandString = `npx webpack --config db.rws.webpack.config.js --output-path ./build ${process.cwd()} ${params[2]}`;
 function needsCacheWarming(){
