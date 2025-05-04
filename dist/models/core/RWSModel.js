@@ -16,6 +16,7 @@ const RelationUtils_1 = require("../utils/RelationUtils");
 const TimeSeriesUtils_1 = require("../utils/TimeSeriesUtils");
 const ModelUtils_1 = require("../utils/ModelUtils");
 const HydrateUtils_1 = require("../utils/HydrateUtils");
+const FindUtils_1 = require("../utils/FindUtils");
 class RWSModel {
     static services = {};
     id;
@@ -119,29 +120,7 @@ class RWSModel {
         return RelationUtils_1.RelationUtils.getRelationManyMeta(model, classFields);
     }
     static async paginate(paginateParams, findParams) {
-        const conditions = findParams?.conditions ?? {};
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        try {
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);
-            if (dbData.length) {
-                const instanced = [];
-                for (const data of dbData) {
-                    const inst = new this();
-                    instanced.push((await inst._asyncFill(data, fullData, allowRelations)));
-                }
-                return instanced;
-            }
-            return [];
-        }
-        catch (rwsError) {
-            console.error(rwsError);
-            throw rwsError;
-        }
+        return await FindUtils_1.FindUtils.paginate(this, paginateParams, findParams);
     }
     async toMongo() {
         const data = {};
@@ -178,9 +157,11 @@ class RWSModel {
     async save() {
         const data = await this.toMongo();
         let updatedModelData = data;
-        if (this.id) {
+        const entryExists = await ModelUtils_1.ModelUtils.entryExists(this);
+        if (entryExists) {
             this.preUpdate();
-            updatedModelData = await this.dbService.update(data, this.getCollection());
+            const compoundId = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
+            updatedModelData = await this.dbService.update(data, this.getCollection(), Array.isArray(compoundId) ? compoundId : null);
             await this._asyncFill(updatedModelData);
             this.postUpdate();
         }
@@ -239,59 +220,13 @@ class RWSModel {
         return await this.services.dbService.watchCollection(collection, preRun);
     }
     static async findOneBy(findParams) {
-        const conditions = findParams?.conditions ?? {};
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-        this.checkForInclusionWithThrow('');
-        const collection = Reflect.get(this, '_collection');
-        const dbData = await this.services.dbService.findOneBy(collection, conditions, fields, ordering, allowRelations);
-        if (dbData) {
-            const inst = new this();
-            return await inst._asyncFill(dbData, fullData, allowRelations);
-        }
-        return null;
+        return await FindUtils_1.FindUtils.findOneBy(this, findParams);
     }
     static async find(id, findParams = null) {
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        const dbData = await this.services.dbService.findOneBy(collection, { id }, fields, ordering, allowRelations);
-        if (dbData) {
-            const inst = new this();
-            return await inst._asyncFill(dbData, fullData, allowRelations);
-        }
-        return null;
+        return await FindUtils_1.FindUtils.find(this, id, findParams);
     }
     static async findBy(findParams) {
-        const conditions = findParams?.conditions ?? {};
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        try {
-            const paginateParams = findParams?.pagination ? findParams?.pagination : undefined;
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);
-            if (dbData.length) {
-                const instanced = [];
-                for (const data of dbData) {
-                    const inst = new this();
-                    instanced.push((await inst._asyncFill(data, fullData, allowRelations)));
-                }
-                return instanced;
-            }
-            return [];
-        }
-        catch (rwsError) {
-            console.error(rwsError);
-            throw rwsError;
-        }
+        return await FindUtils_1.FindUtils.findBy(this, findParams);
     }
     static async delete(conditions) {
         const collection = Reflect.get(this, '_collection');

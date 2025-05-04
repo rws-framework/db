@@ -59,5 +59,57 @@ class ModelUtils {
             .filter((item) => item.indexOf('TrackType') === 0)
             .map((item) => item.split(':').at(-1));
     }
+    static findPrimaryKeyFields(opModel) {
+        if (opModel._NO_ID) {
+            const foundSuperId = opModel._SUPER_TAGS.find(tag => tag.tagType === 'id');
+            if (foundSuperId) {
+                return foundSuperId.fields;
+            }
+            const foundSuperUnique = opModel._SUPER_TAGS.find(tag => tag.tagType === 'unique');
+            if (foundSuperUnique) {
+                return foundSuperUnique.fields;
+            }
+        }
+        return 'id';
+    }
+    static async entryExists(model) {
+        let entryHasData = true;
+        let compoundId = false;
+        const foundPrimaryKey = this.findPrimaryKeyFields(model.constructor);
+        if (Array.isArray(foundPrimaryKey)) {
+            compoundId = true;
+            for (const idKey of foundPrimaryKey) {
+                if (!Object.hasOwn(model, idKey)) {
+                    entryHasData = false;
+                }
+                if (Object.hasOwn(model, idKey) && !model[idKey]) {
+                    entryHasData = false;
+                }
+            }
+        }
+        else {
+            if (Object.hasOwn(model, foundPrimaryKey) && !model[foundPrimaryKey]) {
+                entryHasData = false;
+            }
+            if (!Object.hasOwn(model, foundPrimaryKey)) {
+                entryHasData = false;
+            }
+        }
+        if (!entryHasData) {
+            return false;
+        }
+        const constructor = model.constructor;
+        const conditions = {};
+        if (compoundId) {
+            for (const key of foundPrimaryKey) {
+                conditions[key] = model[key];
+            }
+            return (await constructor.findOneBy({ conditions }) !== null);
+        }
+        else {
+            conditions[foundPrimaryKey] = model[foundPrimaryKey];
+        }
+        return (await constructor.findOneBy({ conditions })) !== null;
+    }
 }
 exports.ModelUtils = ModelUtils;

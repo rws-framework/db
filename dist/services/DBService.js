@@ -101,17 +101,24 @@ class DBService {
         result = await prismaCollection.create({ data });
         return await this.findOneBy(collection, { id: result.id });
     }
-    async update(data, collection) {
-        const model_id = data.id;
-        delete data['id'];
+    async update(data, collection, compoundId = null) {
         const prismaCollection = this.getCollectionHandler(collection);
+        const where = compoundId ? compoundId : {
+            id: data.id,
+        };
+        if (!compoundId) {
+            delete data['id'];
+        }
+        else {
+            for (const cKey in compoundId) {
+                delete data[cKey];
+            }
+        }
         await prismaCollection.update({
-            where: {
-                id: model_id,
-            },
+            where,
             data: data,
         });
-        return await this.findOneBy(collection, { id: model_id });
+        return await this.findOneBy(collection, where);
     }
     async findOneBy(collection, conditions, fields = null, ordering = null, allowRelations = true) {
         const params = { where: conditions };

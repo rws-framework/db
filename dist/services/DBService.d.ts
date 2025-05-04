@@ -21,7 +21,9 @@ declare class DBService {
     cloneDatabase(source: string, target: string): Promise<void>;
     watchCollection(collectionName: string, preRun: () => void): Promise<any>;
     insert(data: any, collection: string, isTimeSeries?: boolean): Promise<any>;
-    update(data: any, collection: string): Promise<IModel>;
+    update(data: any, collection: string, compoundId?: {
+        [key: string]: any;
+    }): Promise<IModel>;
     findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: {
         [fieldName: string]: string;
     }, allowRelations?: boolean): Promise<IModel | null>;

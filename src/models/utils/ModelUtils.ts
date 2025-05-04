@@ -1,5 +1,8 @@
 import { RWSModel } from "../core/RWSModel";
 import { FieldsHelper } from '../../helper/FieldsHelper';
+import { OpModelType } from "..";
+import { ISuperTagData } from "../../decorators/RWSCollection";
+import { FindByType } from "../../types/FindParams";
 
 export class ModelUtils {
     static async getModelAnnotations<T extends unknown>(constructor: new () => T): Promise<Record<string, {annotationType: string, metadata: any}>> {    
@@ -70,5 +73,72 @@ export class ModelUtils {
         return FieldsHelper.getAllClassFields(model)
                 .filter((item: string) => item.indexOf('TrackType') === 0)
                 .map((item: string) => item.split(':').at(-1));
+    }
+
+    static findPrimaryKeyFields(opModel: OpModelType<any>): string  | string[]
+    {
+        if(opModel._NO_ID){
+            const foundSuperId: ISuperTagData = opModel._SUPER_TAGS.find(tag => tag.tagType === 'id');
+
+            if(foundSuperId){
+                return foundSuperId.fields;
+            }
+
+            const foundSuperUnique: ISuperTagData = opModel._SUPER_TAGS.find(tag => tag.tagType === 'unique');
+
+            if(foundSuperUnique){
+                return foundSuperUnique.fields;
+            }
+        }
+
+        return 'id';
+    }
+
+    static async entryExists(model: RWSModel<any>): Promise<boolean>
+    {
+        let entryHasData = true;
+        let compoundId = false;
+
+        const foundPrimaryKey = this.findPrimaryKeyFields(model.constructor as OpModelType<any>);
+
+        if(Array.isArray(foundPrimaryKey)){
+            compoundId = true;
+            for(const idKey of foundPrimaryKey){
+                if(!Object.hasOwn(model, idKey)){
+                    entryHasData = false;
+                }
+
+                if(Object.hasOwn(model, idKey) && !model[idKey]){
+                    entryHasData = false;
+                }
+            }
+        }else{
+            if(Object.hasOwn(model, foundPrimaryKey) && !model[foundPrimaryKey]){
+                entryHasData = false;
+            }
+
+            if(!Object.hasOwn(model, foundPrimaryKey)){
+                entryHasData = false;
+            }
+        }
+
+        if(!entryHasData){
+            return false;
+        }        
+
+        const constructor = model.constructor as OpModelType<any>;
+        const conditions: FindByType['conditions'] = {};
+
+        if(compoundId){           
+            for(const key of foundPrimaryKey){
+                conditions[key] = model[key];
+            }
+
+            return (await constructor.findOneBy({ conditions  }) !== null);
+        }else{
+            conditions[foundPrimaryKey as string] = model[foundPrimaryKey as string];
+        }
+
+        return (await constructor.findOneBy({ conditions })) !== null;
     }
 }

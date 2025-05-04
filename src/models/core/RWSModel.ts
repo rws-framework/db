@@ -200,11 +200,16 @@ class RWSModel<T> implements IModel {
 
     async save(): Promise<this> {
         const data = await this.toMongo();
-        let updatedModelData = data;         
-        if (this.id) {
+        let updatedModelData = data;  
+
+        const entryExists = await ModelUtils.entryExists(this);        
+
+        if (entryExists) {
             this.preUpdate();
 
-            updatedModelData = await this.dbService.update(data, this.getCollection());
+            const compoundId = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
+
+            updatedModelData = await this.dbService.update(data, this.getCollection(), Array.isArray(compoundId) ? compoundId : null);
 
             await this._asyncFill(updatedModelData);
             this.postUpdate();
