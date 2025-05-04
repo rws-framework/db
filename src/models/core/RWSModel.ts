@@ -1,7 +1,7 @@
 import { IModel } from '../interfaces/IModel';
 import { IRWSModelServices } from '../interfaces/IRWSModelServices';
 import { OpModelType } from '../interfaces/OpModelType';
-import { TrackType, ITrackerMetaOpts } from '../../decorators';
+import { TrackType } from '../../decorators';
 import { FieldsHelper } from '../../helper/FieldsHelper';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { RelationUtils } from '../utils/RelationUtils';
@@ -11,9 +11,8 @@ import { ModelUtils } from '../utils/ModelUtils';
 // import timeSeriesModel from './TimeSeriesModel';      
 import { DBService } from '../../services/DBService';
 import { ISuperTagData } from '../../decorators/RWSCollection';
-import { RelManyMetaType, RelOneMetaType } from '../types/RelationTypes';
-import { IRWSModel } from '../../types/IRWSModel';
 import { HydrateUtils } from '../utils/HydrateUtils';
+import { FindUtils } from '../utils/FindUtils';
 
 class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
@@ -153,33 +152,7 @@ class RWSModel<T> implements IModel {
         paginateParams: IPaginationParams,  
         findParams?: FindByType
     ): Promise<T[]> {
-        const conditions = findParams?.conditions ?? {};
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        try {
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);   
-            if (dbData.length) {
-                const instanced: T[] = [];
-        
-                for (const data of dbData) { 
-                    const inst: T = new (this as { new(): T })();
-                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as T);
-                }
-        
-                return instanced;
-            }
-        
-            return [];
-        } catch (rwsError: Error | any) {
-            console.error(rwsError);
-
-            throw rwsError;
-        }                 
+        return await FindUtils.paginate(this, paginateParams, findParams);
     }
 
     public async toMongo(): Promise<any> {
@@ -316,25 +289,7 @@ class RWSModel<T> implements IModel {
         this: OpModelType<T>,
         findParams?: FindByType
     ): Promise<T | null> {
-        const conditions = findParams?.conditions ?? {};
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-
-        this.checkForInclusionWithThrow('');
-
-        
-        const collection = Reflect.get(this, '_collection');        
-        const dbData = await this.services.dbService.findOneBy(collection, conditions, fields, ordering, allowRelations);
-        
-    
-        if (dbData) {
-            const inst: T = new (this as { new(): T })();
-            return await inst._asyncFill(dbData, fullData, allowRelations);
-        }
-    
-        return null;
+        return await FindUtils.findOneBy(this, findParams);
     }
 
     public static async find<T extends RWSModel<T>>(
@@ -342,58 +297,14 @@ class RWSModel<T> implements IModel {
         id: string | number,        
         findParams: Omit<FindByType, 'conditions'> = null
     ): Promise<T | null> {        
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;          
-        const fullData = findParams?.fullData ?? false;
-
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-
-        const dbData = await this.services.dbService.findOneBy(collection, { id }, fields, ordering, allowRelations);
-    
-        if (dbData) {            
-            const inst: T = new (this as { new(): T })();
-            return await inst._asyncFill(dbData, fullData, allowRelations);
-        }
-    
-        return null;
+        return await FindUtils.find(this, id, findParams)
     }   
     
     public static async findBy<T extends RWSModel<T>>(
         this: OpModelType<T>,    
         findParams?: FindByType
     ): Promise<T[]> {
-        const conditions = findParams?.conditions ?? {};
-        const ordering = findParams?.ordering ?? null;
-        const fields = findParams?.fields ?? null;
-        const allowRelations = findParams?.allowRelations ?? true;
-        const fullData = findParams?.fullData ?? false;
-
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        try {
-            const paginateParams =  findParams?.pagination ? findParams?.pagination : undefined;
-            const dbData = await this.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);        
-
-            if (dbData.length) {
-                const instanced: T[] = [];
-        
-                for (const data of dbData) { 
-                    const inst: T = new (this as { new(): T })();
-
-                    instanced.push((await inst._asyncFill(data, fullData,allowRelations)) as T);
-                }
-        
-                return instanced;
-            }
-        
-            return [];
-        } catch (rwsError: Error | any) {
-            console.error(rwsError);
-
-            throw rwsError;
-        }                 
+        return await FindUtils.findBy(this, findParams);                
     }
 
     public static async delete<T extends RWSModel<T>>(
