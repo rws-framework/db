@@ -22,6 +22,11 @@ class DbUtils {
         const schemaPath = path_1.default.join(schemaDir, 'schema.prisma');
         return [schemaDir, schemaPath];
     }
+    static getProcessedSchemaDir() {
+        const schemaDir = path_1.default.join(workspaceRoot, 'node_modules', '.prisma', 'client');
+        const schemaPath = path_1.default.join(schemaDir, 'schema.prisma');
+        return [schemaDir, schemaPath];
+    }
     /**
      * Detect the package installer (yarn or npx)
      */

@@ -298,7 +298,7 @@ datasource db {
      */
     static async pushDBModels(configService, dbService, leaveFile = false) {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
-        const [_, schemaPath] = utils_1.DbUtils.getSchemaDir();
+        const [_, schemaPath] = utils_1.DbUtils.getProcessedSchemaDir();
         await console_1.rwsShell.runCommand(`${utils_1.DbUtils.detectInstaller()} prisma db push --schema=${schemaPath}`, process.cwd());
     }
 }

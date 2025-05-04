@@ -34,7 +34,7 @@ class DbHelper {
     }
     static async migrateDBModels(configService, dbService, leaveFile = false) {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
-        const [_, schemaPath] = db_1.DbUtils.getSchemaDir();
+        const [_, schemaPath] = db_1.DbUtils.getProcessedSchemaDir();
         await console_1.rwsShell.runCommand(`${db_1.DbUtils.detectInstaller()} prisma migrate dev --create-only --schema=${schemaPath}`, process.cwd());
     }
     /**

@@ -8,6 +8,7 @@ export declare class DbUtils {
      * Get the directory and path for the Prisma schema file
      */
     static getSchemaDir(): [string, string];
+    static getProcessedSchemaDir(): [string, string];
     /**
      * Detect the package installer (yarn or npx)
      */
