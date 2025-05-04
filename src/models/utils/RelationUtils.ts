@@ -1,6 +1,6 @@
 import { RelOneMetaType, RelManyMetaType } from '../types/RelationTypes';
 import { IRWSModel } from '../../types/IRWSModel';
-import { RWSModel } from '../_model';
+import { OpModelType, RWSModel } from '../_model';
 
 export class RelationUtils {
     static async getRelationOneMeta(model: RWSModel<any>, classFields: string[]): Promise<RelOneMetaType<IRWSModel>> {
@@ -70,7 +70,28 @@ export class RelationUtils {
     }
 
     static checkRelDisabled(model: RWSModel<any>, key: string): boolean {
-        return Object.keys((model.constructor as any)._RELATIONS).includes(key) && 
-               (model.constructor as any)._RELATIONS[key] === false;
+        const constructor = model.constructor as OpModelType<any>;
+
+        let declaredRelations: string[] = [];
+
+        for(const relKey in constructor._RELATIONS){
+            const relEntry = constructor._RELATIONS[relKey];
+
+            if(relEntry === true){
+                declaredRelations.push(relKey);
+            }
+        }
+
+        // if((model.constructor as OpModelType<any>)._collection === 'product'){
+        //     console.log({key, declaredRelations});
+        //  }         
+
+        // A relation disabled through declared relations
+        if(declaredRelations.length && !declaredRelations.includes(key)){
+            return true;
+        }
+
+        // A relation disabled directly
+        return Object.keys(constructor._RELATIONS).includes(key) && constructor._RELATIONS[key] === false;
     }
 }

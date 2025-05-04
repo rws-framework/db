@@ -146,9 +146,16 @@ datasource db {
                         
                         let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true);
         
+                        /**
+                         * @todo: Detect type
+                         */
                         if(relatedToField === 'id' && dbType !== 'mongodb'){
                             relatedFieldType = 'Int';
-                        }                                       
+                        }                                      
+                        
+                        if(relationMeta.required === false){
+                            requiredString = '?';
+                        }
                     
                         // Add relation field with appropriate type based on database
                         if (dbType === 'mongodb') {

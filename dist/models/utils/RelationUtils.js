@@ -58,8 +58,23 @@ class RelationUtils {
         return !!model[key] && typeof model[key] === 'object' && model[key] !== null && 'id' in model[key];
     }
     static checkRelDisabled(model, key) {
-        return Object.keys(model.constructor._RELATIONS).includes(key) &&
-            model.constructor._RELATIONS[key] === false;
+        const constructor = model.constructor;
+        let declaredRelations = [];
+        for (const relKey in constructor._RELATIONS) {
+            const relEntry = constructor._RELATIONS[relKey];
+            if (relEntry === true) {
+                declaredRelations.push(relKey);
+            }
+        }
+        // if((model.constructor as OpModelType<any>)._collection === 'product'){
+        //     console.log({key, declaredRelations});
+        //  }         
+        // A relation disabled through declared relations
+        if (declaredRelations.length && !declaredRelations.includes(key)) {
+            return true;
+        }
+        // A relation disabled directly
+        return Object.keys(constructor._RELATIONS).includes(key) && constructor._RELATIONS[key] === false;
     }
 }
 exports.RelationUtils = RelationUtils;
