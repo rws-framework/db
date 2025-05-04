@@ -5,6 +5,7 @@ import { IDbConfigParams } from '../../types/DbConfigHandler';
 import { IIdMetaOpts, IIdTypeOpts } from '../../decorators/IdType';
 import { TypeConverter } from './type-converter';
 import { IDbOpts } from '../../models/interfaces/IDbOpts';
+import { ITrackerMetaOpts } from '../../models/_model';
 
 const workspaceRoot = rwsPath.findRootWorkspacePath();
 const moduleDir = path.resolve(workspaceRoot, 'node_modules', '@rws-framework', 'db');
@@ -41,78 +42,151 @@ export class DbUtils {
         dbType: IDbConfigParams['db_type'],
         modelMeta: Record<string, { annotationType: string, metadata: IIdMetaOpts }>,
         optional = false
-    ): string {        
-        let useUuid = false;
+    ): string {
+        let useUuid = this.doesUseUuid(modelMeta);
         let field = 'id';
         const tags: string[] = [];        
 
         for (const key in modelMeta) {
-            const modelMetadata: IIdMetaOpts = modelMeta[key].metadata;            
-            const annotationType: string = modelMeta[key].annotationType;            
+            const modelMetadata: IIdMetaOpts = modelMeta[key].metadata;
+            const annotationType: string = modelMeta[key].annotationType;
 
-            if(key !== 'id'){
-                if(annotationType == 'IdType'){     
+            if (key !== 'id') {
+                if (annotationType == 'IdType') {
                     const dbSpecificTags = TypeConverter.processTypeOptions({ tags: [], dbOptions: modelMetadata.dbOptions }, dbType);
-                    tags.push(...dbSpecificTags);                 
-                             
-                    field = key;
+                    tags.push(...dbSpecificTags);
 
-                    if(modelMetadata.dbOptions?.mysql?.useUuid){
+                    field = key;                   
+                }
+            }
+        }
+
+        const idPrismaType = this.getDefaultPrismaType(dbType, useUuid);
+      
+        let reqStr = '';
+
+        if (optional) {
+            reqStr = '?';
+        }
+
+        let idString: string = `${field} ${idPrismaType}${reqStr}`;
+
+        idString += this.addIdPart(dbType, useUuid, modelMeta[field].metadata.noAuto);
+
+        if(dbType === 'mongodb'){
+            tags.push('@map("_id")');
+            tags.push('@db.ObjectId');
+        }
+
+        if (tags.length) {
+            idString += ' ' + tags.join(' ');
+        }
+
+        if (!idString) {
+            throw new Error(`DB type "${dbType}" is not supported!`);
+        }
+
+
+        return idString;
+    }
+
+    static getDefaultPrismaType(dbType: IDbConfigParams['db_type'], useUuid: boolean): string 
+    {
+        let idPrismaType = 'String';
+
+        switch (dbType) {
+            case 'mysql':
+                if (useUuid) {
+                    idPrismaType = 'String';
+                } else {
+                    idPrismaType = 'Int';
+                }
+
+                break;
+
+            case 'postgresql':
+            case 'postgres':
+                if (useUuid) {
+                    idPrismaType = 'String';
+                } else {
+                    idPrismaType = 'Int';
+                }
+
+                break;
+
+            case 'sqlite':
+                if (useUuid) {
+                    idPrismaType = 'String';
+                } else {
+                    idPrismaType = 'Int';
+                }
+
+                break;
+        }
+
+        return idPrismaType;
+    }
+
+    static doesUseUuid(modelMeta: Record<string, { annotationType: string, metadata: IIdMetaOpts }>): boolean
+    {
+        let useUuid = false;
+       
+        for (const key in modelMeta) {
+            const modelMetadata: IIdMetaOpts = modelMeta[key].metadata;
+            const annotationType: string = modelMeta[key].annotationType;
+
+            if (key !== 'id') {
+                if (annotationType == 'IdType') {                                      
+                    if (modelMetadata.dbOptions?.mysql?.useUuid) {
                         useUuid = true;
                     }
 
-                    if(modelMetadata.dbOptions?.postgres?.useUuid){
+                    if (modelMetadata.dbOptions?.postgres?.useUuid) {
                         useUuid = true;
                     }
 
-                    if(modelMetadata.type.name === 'String'){
+                    if (modelMetadata.type.name === 'String') {
                         useUuid = true;
                     }
                 }
             }
         }
 
-        let idString: string;
-        
-        let reqStr = '';
+        return useUuid;
+    }
 
-        if(optional){
-            reqStr = '?';
+    static addIdPart(dbType: IDbConfigParams['db_type'], useUuid: boolean, noAuto: boolean = false): string
+    { 
+        let idString = ` @id${!noAuto ? ` @default(${this.generateIdDefault(dbType, useUuid)})` : ''}`;
+
+        if(dbType === 'mongodb'){
+            idString += ' @map("_id")';
+            idString += ' @db.ObjectId';            
         }
 
+        return idString;
+    }
+
+    static generateIdDefault(dbType: IDbConfigParams['db_type'], useUuid: boolean): string
+    {        
         switch (dbType) {
             case 'mongodb':
-                idString = `${field} String${reqStr} @id @default(auto()) @map("_id") @db.ObjectId`;
-                break;
+                return `auto()`;                
 
             case 'mysql':
-                idString = useUuid
-                    ? `${field} String${reqStr} @id @default(uuid())`
-                    : `${field} Int${reqStr} @id @default(autoincrement())`;
-                break;
+                return useUuid
+                    ? `uuid()`
+                    : `autoincrement()`;                
 
             case 'postgresql':
             case 'postgres':
-                idString = useUuid
-                    ? `${field} String${reqStr} @id @default(uuid())`
-                    : `${field} Int${reqStr} @id @default(autoincrement())`;
-                    break;    
+                return useUuid
+                    ? `uuid()`
+                    : `autoincrement()`;                
 
             case 'sqlite':
-                idString = `${field} Int${reqStr} @id @default(autoincrement())`;            
-                break;
-        }        
-
-        if(tags.length){
-            idString += ' '+tags.join(' ');
+                return 'autoincrement()';
         }
-
-        if(!idString){
-            throw new Error(`DB type "${dbType}" is not supported!`);
-        }
-
-
-        return idString;
     }
 }
 

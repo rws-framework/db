@@ -6,8 +6,15 @@ class ModelUtils {
     static async getModelAnnotations(constructor) {
         const annotationsData = {};
         const metadataKeys = Reflect.getMetadataKeys(constructor.prototype);
+        const filteredMetaKeys = metadataKeys.filter((metaKey) => {
+            const [annotationType, annotatedField] = metaKey.split(':');
+            if (annotationType === 'TrackType' && annotatedField === 'id' && metadataKeys.includes('IdType:' + annotatedField)) {
+                return false;
+            }
+            return true;
+        });
         // Process all metadata keys and collect promises
-        const metadataPromises = metadataKeys.map(async (fullKey) => {
+        const metadataPromises = filteredMetaKeys.map(async (fullKey) => {
             const [annotationType, propertyKey] = fullKey.split(':');
             const metadata = Reflect.getMetadata(fullKey, constructor.prototype);
             if (metadata) {

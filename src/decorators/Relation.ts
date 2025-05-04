@@ -39,8 +39,8 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: P
                 key,
                 // Generate a unique relation name if one is not provided
                 relationName: relationOptions.relationName ? 
-                  relationOptions.relationName.toLowerCase() : 
-                  `${target.constructor.name.toLowerCase()}_${key}_${relatedTo._collection.toLowerCase()}`
+                  relationOptions.relationName : 
+                  null
             };  
             
             if(relationOptions.required){

@@ -8,10 +8,10 @@ function TrackType(type, opts = null, tags = []) {
             isArray: false
         };
     }
-    if (!(opts === null || opts === void 0 ? void 0 : opts.required)) {
+    if (!opts?.required) {
         opts.required = false;
     }
-    if (!(opts === null || opts === void 0 ? void 0 : opts.isArray)) {
+    if (!opts?.isArray) {
         opts.isArray = false;
     }
     const required = opts.required;

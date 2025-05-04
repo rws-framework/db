@@ -8,7 +8,16 @@ export interface IIdMetaOpts extends IIdTypeOpts {
   
 function IdType(type: any, opts: IIdTypeOpts | null = null, tags: string[] = []) {   
     const metaOpts: IIdMetaOpts = { type, dbOptions: opts && opts.dbOptions ? opts.dbOptions : null };
-    return function(target: any, key: string) {          
+    
+    if(opts && opts.dbOptions){
+        metaOpts.dbOptions = opts.dbOptions;
+    }
+
+    if(opts && opts.noAuto){
+        metaOpts.noAuto = opts.noAuto;
+    }
+
+    return function(target: any, key: string) {                  
         Reflect.defineMetadata(`IdType:${key}`, metaOpts, target);
     };
 }

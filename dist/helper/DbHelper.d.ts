@@ -60,7 +60,7 @@ export declare class DbHelper {
     /**
      * Convert a JavaScript type to a Prisma schema type
      */
-    static toConfigCase(modelType: any, dbType?: string): string;
+    static toConfigCase(modelType: any, dbType?: IDbConfigParams['db_type']): string;
     /**
      * Process type functions metadata to extract database-specific options
      */

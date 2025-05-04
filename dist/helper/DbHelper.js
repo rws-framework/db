@@ -11,6 +11,10 @@ const db_1 = require("./db");
  */
 class DbHelper {
     /**
+     * The environment variable name for the Prisma database URL
+     */
+    static dbUrlVarName = db_1.SchemaGenerator.dbUrlVarName;
+    /**
      * Install Prisma with the generated schema
      * @param configService The configuration service
      * @param dbService The database service
@@ -107,7 +111,3 @@ class DbHelper {
     }
 }
 exports.DbHelper = DbHelper;
-/**
- * The environment variable name for the Prisma database URL
- */
-DbHelper.dbUrlVarName = db_1.SchemaGenerator.dbUrlVarName;

@@ -5,6 +5,7 @@ exports.RelationManager = void 0;
  * Manages database relations for schema generation
  */
 class RelationManager {
+    static allRelations = new Map();
     /**
      * Mark a relation between two models
      * @param relationKey A unique key for the relation
@@ -102,4 +103,3 @@ class RelationManager {
     }
 }
 exports.RelationManager = RelationManager;
-RelationManager.allRelations = new Map();

@@ -35,8 +35,7 @@ class DbUtils {
      * Generate an ID field based on the database type
      */
     static generateId(dbType, modelMeta, optional = false) {
-        var _a, _b, _c, _d;
-        let useUuid = false;
+        let useUuid = this.doesUseUuid(modelMeta);
         let field = 'id';
         const tags = [];
         for (const key in modelMeta) {
@@ -47,41 +46,19 @@ class DbUtils {
                     const dbSpecificTags = type_converter_1.TypeConverter.processTypeOptions({ tags: [], dbOptions: modelMetadata.dbOptions }, dbType);
                     tags.push(...dbSpecificTags);
                     field = key;
-                    if ((_b = (_a = modelMetadata.dbOptions) === null || _a === void 0 ? void 0 : _a.mysql) === null || _b === void 0 ? void 0 : _b.useUuid) {
-                        useUuid = true;
-                    }
-                    if ((_d = (_c = modelMetadata.dbOptions) === null || _c === void 0 ? void 0 : _c.postgres) === null || _d === void 0 ? void 0 : _d.useUuid) {
-                        useUuid = true;
-                    }
-                    if (modelMetadata.type.name === 'String') {
-                        useUuid = true;
-                    }
                 }
             }
         }
-        let idString;
+        const idPrismaType = this.getDefaultPrismaType(dbType, useUuid);
         let reqStr = '';
         if (optional) {
             reqStr = '?';
         }
-        switch (dbType) {
-            case 'mongodb':
-                idString = `${field} String${reqStr} @id @default(auto()) @map("_id") @db.ObjectId`;
-                break;
-            case 'mysql':
-                idString = useUuid
-                    ? `${field} String${reqStr} @id @default(uuid())`
-                    : `${field} Int${reqStr} @id @default(autoincrement())`;
-                break;
-            case 'postgresql':
-            case 'postgres':
-                idString = useUuid
-                    ? `${field} String${reqStr} @id @default(uuid())`
-                    : `${field} Int${reqStr} @id @default(autoincrement())`;
-                break;
-            case 'sqlite':
-                idString = `${field} Int${reqStr} @id @default(autoincrement())`;
-                break;
+        let idString = `${field} ${idPrismaType}${reqStr}`;
+        idString += this.addIdPart(dbType, useUuid, modelMeta[field].metadata.noAuto);
+        if (dbType === 'mongodb') {
+            tags.push('@map("_id")');
+            tags.push('@db.ObjectId');
         }
         if (tags.length) {
             idString += ' ' + tags.join(' ');
@@ -90,6 +67,83 @@ class DbUtils {
             throw new Error(`DB type "${dbType}" is not supported!`);
         }
         return idString;
+    }
+    static getDefaultPrismaType(dbType, useUuid) {
+        let idPrismaType = 'String';
+        switch (dbType) {
+            case 'mysql':
+                if (useUuid) {
+                    idPrismaType = 'String';
+                }
+                else {
+                    idPrismaType = 'Int';
+                }
+                break;
+            case 'postgresql':
+            case 'postgres':
+                if (useUuid) {
+                    idPrismaType = 'String';
+                }
+                else {
+                    idPrismaType = 'Int';
+                }
+                break;
+            case 'sqlite':
+                if (useUuid) {
+                    idPrismaType = 'String';
+                }
+                else {
+                    idPrismaType = 'Int';
+                }
+                break;
+        }
+        return idPrismaType;
+    }
+    static doesUseUuid(modelMeta) {
+        let useUuid = false;
+        for (const key in modelMeta) {
+            const modelMetadata = modelMeta[key].metadata;
+            const annotationType = modelMeta[key].annotationType;
+            if (key !== 'id') {
+                if (annotationType == 'IdType') {
+                    if (modelMetadata.dbOptions?.mysql?.useUuid) {
+                        useUuid = true;
+                    }
+                    if (modelMetadata.dbOptions?.postgres?.useUuid) {
+                        useUuid = true;
+                    }
+                    if (modelMetadata.type.name === 'String') {
+                        useUuid = true;
+                    }
+                }
+            }
+        }
+        return useUuid;
+    }
+    static addIdPart(dbType, useUuid, noAuto = false) {
+        let idString = ` @id${!noAuto ? ` @default(${this.generateIdDefault(dbType, useUuid)})` : ''}`;
+        if (dbType === 'mongodb') {
+            idString += ' @map("_id")';
+            idString += ' @db.ObjectId';
+        }
+        return idString;
+    }
+    static generateIdDefault(dbType, useUuid) {
+        switch (dbType) {
+            case 'mongodb':
+                return `auto()`;
+            case 'mysql':
+                return useUuid
+                    ? `uuid()`
+                    : `autoincrement()`;
+            case 'postgresql':
+            case 'postgres':
+                return useUuid
+                    ? `uuid()`
+                    : `autoincrement()`;
+            case 'sqlite':
+                return 'autoincrement()';
+        }
     }
 }
 exports.DbUtils = DbUtils;

@@ -9,4 +9,5 @@ export interface ITrackerOpts extends IDbOpts {
     relatedTo?: OpModelType<any>;
     inversionModel?: OpModelType<any>;
     relationName?: string;
+    noAuto?: boolean;
 }

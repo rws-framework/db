@@ -8,10 +8,12 @@ const client_1 = require("@prisma/client");
 const mongodb_1 = require("mongodb");
 const chalk_1 = __importDefault(require("chalk"));
 class DBService {
+    configService;
+    client;
+    opts = null;
+    connected = false;
     constructor(configService) {
         this.configService = configService;
-        this.opts = null;
-        this.connected = false;
     }
     connectToDB(opts = null) {
         if (opts) {
@@ -50,15 +52,13 @@ class DBService {
         return client;
     }
     async createBaseMongoClient() {
-        var _a;
-        const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('db_url');
+        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
         const client = DBService.baseClientConstruct(dbUrl);
         await client.connect();
         return client;
     }
     async createBaseMongoClientDB() {
-        var _a;
-        const dbName = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbName) || this.configService.get('db_name');
+        const dbName = this.opts?.dbName || this.configService.get('db_name');
         const client = await this.createBaseMongoClient();
         return [client, client.db(dbName)];
     }
@@ -151,8 +151,7 @@ class DBService {
         return retData;
     }
     async collectionExists(collection_name) {
-        var _a;
-        const dbUrl = ((_a = this.opts) === null || _a === void 0 ? void 0 : _a.dbUrl) || this.configService.get('db_url');
+        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
         const client = new mongodb_1.MongoClient(dbUrl);
         try {
             await client.connect();

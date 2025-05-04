@@ -3,7 +3,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 const ModelUtils_1 = require("../models/utils/ModelUtils");
 function guessForeignKey(inversionModel, bindingModel, decoratorsData) {
-    var _a;
     let key = null;
     let defaultKey = `${bindingModel._collection}_id`;
     const relDecorators = {};
@@ -21,7 +20,7 @@ function guessForeignKey(inversionModel, bindingModel, decoratorsData) {
         }
     }
     for (const relKey of Object.keys(relDecorators)) {
-        const prodMeta = (_a = relDecorators[relKey]) === null || _a === void 0 ? void 0 : _a.metadata;
+        const prodMeta = relDecorators[relKey]?.metadata;
         if (prodMeta && prodMeta.relatedTo._collection === bindingModel._collection) {
             return prodMeta.relationField;
         }
@@ -41,8 +40,8 @@ function InverseRelation(inversionModel, sourceModel, relationOptions = null) {
                 foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : guessForeignKey(model, source, decoratorsData),
                 // Generate a unique relation name if one is not provided
                 relationName: relationOptions && relationOptions.relationName ?
-                    relationOptions.relationName.toLowerCase() :
-                    `${model._collection}_${key}_${source._collection}`.toLowerCase()
+                    relationOptions.relationName :
+                    null
             };
             return metaOpts;
         });

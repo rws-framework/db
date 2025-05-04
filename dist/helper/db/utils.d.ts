@@ -19,6 +19,13 @@ export declare class DbUtils {
         annotationType: string;
         metadata: IIdMetaOpts;
     }>, optional?: boolean): string;
+    static getDefaultPrismaType(dbType: IDbConfigParams['db_type'], useUuid: boolean): string;
+    static doesUseUuid(modelMeta: Record<string, {
+        annotationType: string;
+        metadata: IIdMetaOpts;
+    }>): boolean;
+    static addIdPart(dbType: IDbConfigParams['db_type'], useUuid: boolean, noAuto?: boolean): string;
+    static generateIdDefault(dbType: IDbConfigParams['db_type'], useUuid: boolean): string;
 }
 export declare const workspaceRootPath: string;
 export declare const moduleDirPath: string;

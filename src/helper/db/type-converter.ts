@@ -1,6 +1,8 @@
 import { IDbOpts } from '../../models/interfaces/IDbOpts';
 import { ITrackerMetaOpts } from '../../models/_model';
 import { IIdMetaOpts } from 'src/decorators/IdType';
+import { DbUtils } from './utils';
+import { IDbConfigParams } from 'src/types/DbConfigHandler';
 
 /**
  * Handles type conversion for database schema generation
@@ -9,7 +11,7 @@ export class TypeConverter {
     /**
      * Convert a JavaScript type to a Prisma schema type
      */
-    static toConfigCase(modelType: ITrackerMetaOpts | IIdMetaOpts, dbType: string = 'mongodb', isId: boolean = false): string {
+    static toConfigCase(modelType: ITrackerMetaOpts | IIdMetaOpts, dbType: IDbConfigParams['db_type'] = 'mongodb', isId: boolean = false, isIdOverride: boolean = false): string {
         const type = modelType.type;
         let input = type.name;    
             
@@ -34,6 +36,10 @@ export class TypeConverter {
             if(!numberOverride){
                 input = 'Int';
             }            
+        }
+
+        if (input == 'BigInt') {
+            input = 'BigInt';
         }
 
         if (input == 'Object') {
@@ -63,9 +69,9 @@ export class TypeConverter {
         const restOfString = input.slice(1);
         let resultField = firstChar + restOfString;
 
-        if(isId){
-            return dbType === 'mongodb' ? 'String' : 'Int';
-        }
+        if(isId && !isIdOverride){
+            return DbUtils.getDefaultPrismaType(dbType, false);
+        }      
 
         const trackerModelType = modelType as ITrackerMetaOpts;
 

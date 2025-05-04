@@ -15,6 +15,8 @@ import { RelationManager } from './relation-manager';
 import { ITrackerMetaOpts } from '../../decorators/TrackType';
 import { IDbOpts } from '../../models/interfaces/IDbOpts';
 
+const _EXECUTE_PRISMA_CMD = true;
+const _REMOVE_SCHEMA_FILE = true;
 
 /**
  * Handles Prisma schema generation
@@ -56,13 +58,28 @@ datasource db {
         const dbType = configService.get('db_type') || 'mongodb';
         const modelName: string = (model as any)._collection;
 
-        section += `model ${modelName} {\n`;       
+        section += `model ${modelName} {\n`;               
+
+        let hasIdType = false;  
+        let idFieldName: string;
+
+        for(const someModelMetaKey in modelMetadatas){
+            const isIdTyped = modelMetadatas[someModelMetaKey].annotationType === 'IdType';
+            if(isIdTyped){
+                hasIdType = true;
+                idFieldName = someModelMetaKey;
+            }
+        }
+
+        let idGenerated = false;      
+            
 
         if(
-            !model._NO_ID            
-        ){
-            section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;
-        }              
+            !model._NO_ID && !hasIdType            
+        ){                     
+            section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;     
+            idGenerated = true;
+        }                        
 
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
@@ -71,16 +88,15 @@ datasource db {
 
             let indexedId = false;
 
-            if(model._NO_ID){
+            if(model._NO_ID || hasIdType){
                 indexedId = true;
                 requiredString = '';
-            }
-                   
+            }                         
 
             if (key === 'id' && !indexedId) {
                 continue;
             }
-
+              
             if (annotationType === 'Relation') {
                 const relationMeta = modelMetadata as IRelationOpts;
 
@@ -100,8 +116,9 @@ datasource db {
                 const relationKey = [modelName, relatedModelName].join('_');
                 
                 const relationIndex = RelationManager.getRelationCounter(relationKey);
-                const relationName = RelationManager.getShortenedRelationName(modelName, relatedModelName, relationIndex);
-                const mapName = relationName; 
+                const relationName = relationMeta.relationName ? relationMeta.relationName : null;
+
+                const mapName = relationMeta.mappingName ? relationMeta.mappingName : null; 
 
                 const relatedModelMetadatas: Record<string, { annotationType: string, metadata: ITrackerMetaOpts }> = await RWSModel.getModelAnnotations(relatedModel);
                 const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField  : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
@@ -111,19 +128,19 @@ datasource db {
                 
                 if(modelMetadata.required === false){
                     requiredString = '?';
-                }
+                }               
 
                 const cascadeStr = cascadeOpts.length ? `, ${cascadeOpts.join(', ')}` : '' ;
 
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist
-                    section += `\t${key} ${relatedModel._collection}[] @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}"${cascadeStr})\n`;
-                } else {                    
-                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation("${relationName}", fields: [${relationFieldName}], references: [${relatedToField}], map: "${mapName}"${cascadeStr})\n`;
+                    section += `\t${key} ${relatedModel._collection}[] @relation(${relationName ? `"${relationName}", ` : ''}fields: [${relationFieldName}], references: [${relatedToField}]${mapName ? `, map: "${mapName}"` : ''}${cascadeStr})\n`;
+                } else {                             
+                    section += `\t${key} ${relatedModel._collection}${requiredString} @relation(${relationName ? `"${relationName}", ` : ''}fields: [${relationFieldName}], references: [${relatedToField}]${mapName ? `, map: "${mapName}"` : ''}${cascadeStr})\n`;
                     if(!bindingFieldExists){
                         const relatedFieldMeta = relatedModelMetadatas[relatedToField];
 
-                        if(!relatedFieldMeta.metadata.required){
+                        if(!relatedFieldMeta.metadata.required){                     
                             requiredString = '';
                         }
                         
@@ -163,10 +180,15 @@ datasource db {
                 const relationKey = [relatedModelName, modelName].join('_');
                 const relationIndex = RelationManager.getRelationCounter(relationKey, true);
 
-                const relationName = RelationManager.getShortenedRelationName(relatedModelName, modelName, relationIndex);
-                const mapName = relationName; 
+                const relationName = RelationManager.getShortenedRelationName(relatedModelName, modelName, relationIndex);                
 
-                section += `\t${key} ${relationMeta.inversionModel._collection}[] @relation("${relationName}", map: "${mapName}")\n`;
+                let relationTag = '';
+
+                if(relationMeta.relationName){
+                    relationTag = ` @relation("${relationMeta.relationName}")`;
+                }
+
+                section += `\t${key} ${relationMeta.inversionModel._collection}[]${relationTag}\n`;
                 
                 RelationManager.completeRelation(relationKey, relationIndex, true);
             } else if (annotationType === 'InverseTimeSeries') {
@@ -181,14 +203,22 @@ datasource db {
                 } else {
                     section += `\t${key} String[]\n`;
                 }
-            } else if (annotationType === 'TrackType') {
+            } else {
                 const trackMeta = modelMetadata as ITrackerMetaOpts;
-                const tags: string[] = trackMeta.tags.map((item: string) => '@' + item);  
-                
-                if(key === 'id' && model._NO_ID && !model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes('id'))){
+                const trackTags = trackMeta.tags || [];
+                const tags: string[] = trackTags.map((item: string) => '@' + item);  
+                             
+                const isNoIdBehavior = model._NO_ID || idFieldName;
+                const isOverrideBehavior = (hasIdType && annotationType === 'IdType' && key === 'id' && idFieldName === 'id') 
+                    || 
+                    (model._NO_ID && model._SUPER_TAGS.some(a => a.fields.includes('id')) && key === 'id');
+                                                                
+                if(key === 'id' && 
+                    isNoIdBehavior && !isOverrideBehavior               
+                ){                  
                     continue;
                 }
-       
+
                 if(trackMeta.unique){
                     const fieldDetail: string | null = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
                     tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
@@ -210,8 +240,21 @@ datasource db {
                 const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta as { tags: string[], dbOptions: IDbOpts['dbOptions'] }, dbType);
                 tags.push(...dbSpecificTags);
          
+                const isIdTypeField = modelMetadatas[key].annotationType === 'IdType';                         
+                const fieldInUniqueSuperTag = model._SUPER_TAGS.some(st => st.tagType === 'unique' && st.fields.includes(key));
 
-                section += `\t${key} ${TypeConverter.toConfigCase(trackMeta, dbType, key === 'id')}${requiredString} ${tags.join(' ')}\n`;
+                if(isIdTypeField){
+                    requiredString = '';
+                }        
+
+                let trackField = `${key} ${TypeConverter.toConfigCase(trackMeta, dbType, key === 'id', isOverrideBehavior)}${requiredString} ${tags.join(' ')}`;
+
+                if(isIdTypeField){
+                    trackField += DbUtils.addIdPart(dbType, DbUtils.doesUseUuid(modelMetadatas), trackMeta.noAuto);
+                    idGenerated = true;                                   
+                }          
+
+                section += `\t${trackField}\n`;
             }
         }
 
@@ -319,13 +362,14 @@ datasource db {
 
             fs.writeFileSync(schemaPath, template);
 
+            if(_EXECUTE_PRISMA_CMD)
             await rwsShell.runCommand(`${DbUtils.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
 
-            leaveFile = false;
+            
             console.log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
-            if (!leaveFile) {
-                // fs.unlinkSync(schemaPath);
+            if (_REMOVE_SCHEMA_FILE) {
+                fs.unlinkSync(schemaPath);
             }
         }
     }

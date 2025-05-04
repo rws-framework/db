@@ -101,7 +101,7 @@ export class DbHelper {
     /**
      * Convert a JavaScript type to a Prisma schema type
      */
-    static toConfigCase(modelType: any, dbType: string = 'mongodb'): string {
+    static toConfigCase(modelType: any, dbType: IDbConfigParams['db_type'] = 'mongodb'): string {
         return TypeConverter.toConfigCase(modelType, dbType);
     }
 
