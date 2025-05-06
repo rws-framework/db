@@ -144,15 +144,9 @@ datasource db {
                             requiredString = '';
                         }
                         
-                        let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true);
-        
-                        /**
-                         * @todo: Detect type
-                         */
-                        if(relatedToField === 'id' && dbType !== 'mongodb'){
-                            relatedFieldType = 'Int';
-                        }                                      
-                        
+                        const defaultIdType = DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
+                        let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true, relatedFieldMeta.annotationType !== 'TrackType' && relatedToField === 'id'  && relatedFieldMeta.metadata.type !== defaultIdType);                                 
+                                                                    
                         if(relationMeta.required === false){
                             requiredString = '?';
                         }
@@ -271,13 +265,33 @@ datasource db {
 
         for(const superTag of model._SUPER_TAGS){
 
-            const mapStr = superTag.map ? `, map: "${superTag.map}"` : '';
+            let mapStr = '';
+
+            if(superTag.map){
+                const superFieldMapMeta = modelMetadatas[superTag.map];    
+                
+                let mapField: string = superTag.map;
+
+                if(superFieldMapMeta){
+                    mapField = this.getSuperFieldFromModel(mapField, superFieldMapMeta);
+                }
+
+                mapStr = `, map: "${mapField}"`;
+            }                    
 
             const superFields = [];
         
-            for(const superField of superTag.fields){
-                const fieldMetadata = modelMetadatas[superField]['metadata'];
-       
+            for(let superField of superTag.fields){
+                const superFieldElemMeta = modelMetadatas[superField];                
+
+                if(!superFieldElemMeta){
+                    console.log(chalk.yellowBright(`Ignoring "${superField}" field in "${superTag.tagType}" supertag in model "${modelName}"`));
+                    continue;
+                }
+
+                const fieldMetadata = superFieldElemMeta.metadata;
+
+                superField = this.getSuperFieldFromModel(superField, superFieldElemMeta);
     
                 let pushed = false;
 
@@ -300,6 +314,22 @@ datasource db {
 
         section += '}\n';
         return section;
+    }
+
+    private static getSuperFieldFromModel(superFieldElemName: string, superFieldElemMeta: {
+        annotationType: string;
+        metadata: any;
+    }): string
+    {
+
+        const fieldDecorator = superFieldElemMeta.annotationType;
+
+        if(fieldDecorator === 'Relation'){
+            const fieldMetadata = superFieldElemMeta.metadata as IRelationOpts;
+            superFieldElemName = fieldMetadata.relationField;
+        }
+
+        return superFieldElemName;
     }
 
     /**

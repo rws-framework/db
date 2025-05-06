@@ -20,6 +20,7 @@ export declare class SchemaGenerator {
      * @returns The model section
      */
     static generateModelSections(model: OpModelType<any>, configService: IDbConfigHandler): Promise<string>;
+    private static getSuperFieldFromModel;
     /**
      * Install Prisma with the generated schema
      * @param configService The configuration service

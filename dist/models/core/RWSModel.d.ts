@@ -65,5 +65,6 @@ declare class RWSModel<T> implements IModel {
     static setServices(services: IRWSModelServices): void;
     getDb(): DBService;
     static getDb(): DBService;
+    reload(): Promise<T | null>;
 }
 export { RWSModel };

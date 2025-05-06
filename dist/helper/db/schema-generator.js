@@ -108,13 +108,8 @@ datasource db {
                         if (!relatedFieldMeta.metadata.required) {
                             requiredString = '';
                         }
-                        let relatedFieldType = type_converter_1.TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true);
-                        /**
-                         * @todo: Detect type
-                         */
-                        if (relatedToField === 'id' && dbType !== 'mongodb') {
-                            relatedFieldType = 'Int';
-                        }
+                        const defaultIdType = utils_1.DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
+                        let relatedFieldType = type_converter_1.TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true, relatedFieldMeta.annotationType !== 'TrackType' && relatedToField === 'id' && relatedFieldMeta.metadata.type !== defaultIdType);
                         if (relationMeta.required === false) {
                             requiredString = '?';
                         }
@@ -218,10 +213,24 @@ datasource db {
             section += '\n';
         }
         for (const superTag of model._SUPER_TAGS) {
-            const mapStr = superTag.map ? `, map: "${superTag.map}"` : '';
+            let mapStr = '';
+            if (superTag.map) {
+                const superFieldMapMeta = modelMetadatas[superTag.map];
+                let mapField = superTag.map;
+                if (superFieldMapMeta) {
+                    mapField = this.getSuperFieldFromModel(mapField, superFieldMapMeta);
+                }
+                mapStr = `, map: "${mapField}"`;
+            }
             const superFields = [];
-            for (const superField of superTag.fields) {
-                const fieldMetadata = modelMetadatas[superField]['metadata'];
+            for (let superField of superTag.fields) {
+                const superFieldElemMeta = modelMetadatas[superField];
+                if (!superFieldElemMeta) {
+                    console.log(chalk_1.default.yellowBright(`Ignoring "${superField}" field in "${superTag.tagType}" supertag in model "${modelName}"`));
+                    continue;
+                }
+                const fieldMetadata = superFieldElemMeta.metadata;
+                superField = this.getSuperFieldFromModel(superField, superFieldElemMeta);
                 let pushed = false;
                 if (fieldMetadata.dbOptions && fieldMetadata.dbOptions.mysql && fieldMetadata.dbOptions.mysql.useType) {
                     switch (fieldMetadata.dbOptions.mysql.useType) {
@@ -239,6 +248,14 @@ datasource db {
         }
         section += '}\n';
         return section;
+    }
+    static getSuperFieldFromModel(superFieldElemName, superFieldElemMeta) {
+        const fieldDecorator = superFieldElemMeta.annotationType;
+        if (fieldDecorator === 'Relation') {
+            const fieldMetadata = superFieldElemMeta.metadata;
+            superFieldElemName = fieldMetadata.relationField;
+        }
+        return superFieldElemName;
     }
     /**
      * Install Prisma with the generated schema

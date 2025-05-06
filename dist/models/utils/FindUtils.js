@@ -10,7 +10,7 @@ class FindUtils {
         const fullData = findParams?.fullData ?? false;
         opModel.checkForInclusionWithThrow('');
         const collection = Reflect.get(opModel, '_collection');
-        const dbData = await opModel.services.dbService.findOneBy(collection, conditions, fields, ordering, allowRelations);
+        const dbData = await opModel.services.dbService.findOneBy(collection, conditions, fields, ordering);
         if (dbData) {
             const inst = new opModel();
             return await inst._asyncFill(dbData, fullData, allowRelations);
@@ -24,7 +24,7 @@ class FindUtils {
         const fullData = findParams?.fullData ?? false;
         const collection = Reflect.get(opModel, '_collection');
         opModel.checkForInclusionWithThrow(opModel.name);
-        const dbData = await opModel.services.dbService.findOneBy(collection, { id }, fields, ordering, allowRelations);
+        const dbData = await opModel.services.dbService.findOneBy(collection, { id }, fields, ordering);
         if (dbData) {
             const inst = new opModel();
             return await inst._asyncFill(dbData, fullData, allowRelations);

@@ -137,19 +137,26 @@ class DBService {
         return await this.findOneBy(collection, { id: result.id });
     }
 
-    async update(data: any, collection: string, compoundId: {[key: string]: any} = null): Promise<IModel> 
+    async update(data: any, collection: string, pk: string | string[]): Promise<IModel> 
     {        
 
         const prismaCollection = this.getCollectionHandler(collection);
 
-        const where = compoundId ? compoundId : {
-            id: data.id,
-        };
 
-        if(!compoundId){
-            delete data['id'];
+        const where: any = {};
+                    
+        if(Array.isArray(pk)){            
+            for(const pkElem of pk){
+                where[pkElem] = data[pkElem];
+            }
         }else{
-            for(const cKey in compoundId){
+            where[pk as string] = data[pk as string]
+        }         
+
+        if(!Array.isArray(pk)){
+            delete data[pk];
+        }else{
+            for(const cKey in pk){
                 delete data[cKey];
             }
         }        
@@ -164,7 +171,7 @@ class DBService {
     }
   
 
-    async findOneBy(collection: string, conditions: any, fields: string[] | null = null, ordering: { [fieldName: string]: string } = null, allowRelations: boolean = true): Promise<IModel|null>
+    async findOneBy(collection: string, conditions: any, fields: string[] | null = null, ordering: { [fieldName: string]: string } = null): Promise<IModel|null>
     {    
         const params: any = { where: conditions };
 

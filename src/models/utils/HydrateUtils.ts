@@ -5,6 +5,7 @@ import { TimeSeriesUtils } from "./TimeSeriesUtils";
 import { RelationUtils } from "./RelationUtils";
 import { OpModelType } from "..";
 import { ModelUtils } from "./ModelUtils";
+import chalk from 'chalk';
 
 export class HydrateUtils {
     static async hydrateDataFields(model: RWSModel<any>, collections_to_models: {[key: string]: any}, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: {[key: string] : any}){
@@ -58,13 +59,15 @@ export class HydrateUtils {
 
                        
 
-                 if (relationEnabled) {                                
+                 if (relationEnabled) {         
+                    const pk = ModelUtils.findPrimaryKeyFields(model.constructor as OpModelType<any>) as string;
+                            
                     model[relMeta.key] = await relMeta.inversionModel.findBy({
                          conditions: {
-                             [relMeta.foreignKey]: data.id
+                             [relMeta.foreignKey]: data[pk]
                          },
                          allowRelations: false
-                     });    
+                     });          
                  }                                
              }
              
@@ -81,8 +84,19 @@ export class HydrateUtils {
                      throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`)
                  }
                                   
-                 if (relationEnabled && data[relMeta.hydrationField]) {                        
-                    model[relMeta.key] = await relMeta.model.findOneBy({conditions: {[relMeta.foreignKey] : data[relMeta.hydrationField]}}, { allowRelations: false });    
+                 if (relationEnabled && data[relMeta.hydrationField]) {    
+                    const pk = ModelUtils.findPrimaryKeyFields(relMeta.model);
+
+                    const where: any = {};
+                    
+                    if(Array.isArray(pk)){
+                        console.log(chalk.yellowBright(`Hydration field "${relMeta.hydrationField}" on model "${model.constructor.name}" leads to compound key. Ignoring.`));
+                        continue;
+                    }else{
+                        where[pk as string] = data[relMeta.hydrationField]
+                    }            
+                                    
+                    model[relMeta.key] = await relMeta.model.findOneBy({conditions: where}, { allowRelations: false });    
                  }                                
                  else if(relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]){                    
                      const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);                    

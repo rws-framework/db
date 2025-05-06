@@ -160,8 +160,8 @@ class RWSModel {
         const entryExists = await ModelUtils_1.ModelUtils.entryExists(this);
         if (entryExists) {
             this.preUpdate();
-            const compoundId = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
-            updatedModelData = await this.dbService.update(data, this.getCollection(), Array.isArray(compoundId) ? compoundId : null);
+            const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
+            updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
             await this._asyncFill(updatedModelData);
             this.postUpdate();
         }
@@ -264,6 +264,19 @@ class RWSModel {
     }
     static getDb() {
         return this.services.dbService;
+    }
+    async reload() {
+        const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
+        const where = {};
+        if (Array.isArray(pk)) {
+            for (const pkElem of pk) {
+                where[pkElem] = this[pkElem];
+            }
+        }
+        else {
+            where[pk] = this[pk];
+        }
+        return await FindUtils_1.FindUtils.findOneBy(this.constructor, { conditions: where });
     }
 }
 exports.RWSModel = RWSModel;

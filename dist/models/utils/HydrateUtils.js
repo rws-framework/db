@@ -1,9 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HydrateUtils = void 0;
 const TimeSeriesUtils_1 = require("./TimeSeriesUtils");
 const RelationUtils_1 = require("./RelationUtils");
 const ModelUtils_1 = require("./ModelUtils");
+const chalk_1 = __importDefault(require("chalk"));
 class HydrateUtils {
     static async hydrateDataFields(model, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data) {
         const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(model);
@@ -43,9 +47,10 @@ class HydrateUtils {
             const relMeta = relManyData[key];
             const relationEnabled = !RelationUtils_1.RelationUtils.checkRelDisabled(model, relMeta.key);
             if (relationEnabled) {
+                const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(model.constructor);
                 model[relMeta.key] = await relMeta.inversionModel.findBy({
                     conditions: {
-                        [relMeta.foreignKey]: data.id
+                        [relMeta.foreignKey]: data[pk]
                     },
                     allowRelations: false
                 });
@@ -62,7 +67,16 @@ class HydrateUtils {
                 throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`);
             }
             if (relationEnabled && data[relMeta.hydrationField]) {
-                model[relMeta.key] = await relMeta.model.findOneBy({ conditions: { [relMeta.foreignKey]: data[relMeta.hydrationField] } }, { allowRelations: false });
+                const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(relMeta.model);
+                const where = {};
+                if (Array.isArray(pk)) {
+                    console.log(chalk_1.default.yellowBright(`Hydration field "${relMeta.hydrationField}" on model "${model.constructor.name}" leads to compound key. Ignoring.`));
+                    continue;
+                }
+                else {
+                    where[pk] = data[relMeta.hydrationField];
+                }
+                model[relMeta.key] = await relMeta.model.findOneBy({ conditions: where }, { allowRelations: false });
             }
             else if (relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]) {
                 const newRelModel = await relMeta.model.create(data[relMeta.key]);

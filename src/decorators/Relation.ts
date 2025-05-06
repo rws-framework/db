@@ -44,6 +44,9 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: P
             };  
             
             if(relationOptions.required){
+                if(!metaOpts.cascade){
+                    metaOpts.cascade = {};
+                }
                 metaOpts.cascade.onDelete = 'Restrict';
             }
 

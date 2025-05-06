@@ -2,7 +2,10 @@ import { OpModelType } from "../models/_model";
 export interface ISuperTagData {
     tagType: string;
     fields: string[];
-    map: string;
+    fieldParams?: {
+        [key: string]: any;
+    };
+    map?: string;
 }
 export interface IRWSCollectionOpts {
     relations?: {

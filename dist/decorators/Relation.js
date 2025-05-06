@@ -20,6 +20,9 @@ function Relation(theModel, relationOptions = _DEFAULTS) {
                     null
             };
             if (relationOptions.required) {
+                if (!metaOpts.cascade) {
+                    metaOpts.cascade = {};
+                }
                 metaOpts.cascade.onDelete = 'Restrict';
             }
             return metaOpts;

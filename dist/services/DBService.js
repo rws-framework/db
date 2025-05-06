@@ -101,16 +101,22 @@ class DBService {
         result = await prismaCollection.create({ data });
         return await this.findOneBy(collection, { id: result.id });
     }
-    async update(data, collection, compoundId = null) {
+    async update(data, collection, pk) {
         const prismaCollection = this.getCollectionHandler(collection);
-        const where = compoundId ? compoundId : {
-            id: data.id,
-        };
-        if (!compoundId) {
-            delete data['id'];
+        const where = {};
+        if (Array.isArray(pk)) {
+            for (const pkElem of pk) {
+                where[pkElem] = data[pkElem];
+            }
         }
         else {
-            for (const cKey in compoundId) {
+            where[pk] = data[pk];
+        }
+        if (!Array.isArray(pk)) {
+            delete data[pk];
+        }
+        else {
+            for (const cKey in pk) {
                 delete data[cKey];
             }
         }
@@ -120,7 +126,7 @@ class DBService {
         });
         return await this.findOneBy(collection, where);
     }
-    async findOneBy(collection, conditions, fields = null, ordering = null, allowRelations = true) {
+    async findOneBy(collection, conditions, fields = null, ordering = null) {
         const params = { where: conditions };
         if (fields) {
             params.select = {};

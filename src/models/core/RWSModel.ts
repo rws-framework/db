@@ -207,9 +207,9 @@ class RWSModel<T> implements IModel {
         if (entryExists) {
             this.preUpdate();
 
-            const compoundId = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
+            const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
 
-            updatedModelData = await this.dbService.update(data, this.getCollection(), Array.isArray(compoundId) ? compoundId : null);
+            updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
 
             await this._asyncFill(updatedModelData);
             this.postUpdate();
@@ -364,6 +364,22 @@ class RWSModel<T> implements IModel {
     public static getDb(): DBService
     {
         return this.services.dbService;
+    }
+
+    public async reload(): Promise<T | null>
+    {
+        const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
+        const where: any = {};
+                    
+        if(Array.isArray(pk)){            
+            for(const pkElem of pk){
+                where[pkElem] = this[pkElem];
+            }
+        }else{
+            where[pk as string] = this[pk as string]
+        }         
+        
+        return await FindUtils.findOneBy(this.constructor as OpModelType<any>, { conditions: where });
     }
 }
 
