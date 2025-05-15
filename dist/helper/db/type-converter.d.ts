@@ -1,7 +1,7 @@
 import { IDbOpts } from '../../models/interfaces/IDbOpts';
 import { ITrackerMetaOpts } from '../../models/_model';
-import { IIdMetaOpts } from 'src/decorators/IdType';
-import { IDbConfigParams } from 'src/types/DbConfigHandler';
+import { IIdMetaOpts } from '../../decorators/IdType';
+import { IDbConfigParams } from '../../types/DbConfigHandler';
 /**
  * Handles type conversion for database schema generation
  */

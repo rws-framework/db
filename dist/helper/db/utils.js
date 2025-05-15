@@ -61,10 +61,10 @@ class DbUtils {
         }
         let idString = `${field} ${idPrismaType}${reqStr}`;
         idString += this.addIdPart(dbType, useUuid, modelMeta[field].metadata.noAuto);
-        if (dbType === 'mongodb') {
-            tags.push('@map("_id")');
-            tags.push('@db.ObjectId');
-        }
+        // if(dbType === 'mongodb'){
+        //     tags.push('@map("_id")');
+        //     tags.push('@db.ObjectId');
+        // }
         if (tags.length) {
             idString += ' ' + tags.join(' ');
         }
