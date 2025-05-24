@@ -93,10 +93,16 @@ datasource db {
                 const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
                 const relatedToField = modelMetadata.relatedToField || 'id';
                 const bindingFieldExists = !!modelMetadatas[relationFieldName];
+                const relatedFieldMeta = relatedModelMetadatas[relatedToField];
+                const foundInverseRelation = Object.values(relatedModelMetadatas).find(item => item.metadata.foreignKey === relationFieldName && item.metadata.inversionModel._collection === modelName);
                 if (modelMetadata.required === false) {
                     requiredString = '?';
                 }
-                const cascadeStr = cascadeOpts.length ? `, ${cascadeOpts.join(', ')}` : '';
+                let cascadeStr = cascadeOpts.length ? `, ${cascadeOpts.join(', ')}` : '';
+                if (foundInverseRelation && foundInverseRelation.metadata.singular) {
+                    cascadeStr = '';
+                    requiredString = '?';
+                }
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist
                     section += `\t${key} ${relatedModel._collection}[] @relation(${relationName ? `"${relationName}", ` : ''}fields: [${relationFieldName}], references: [${relatedToField}]${mapName ? `, map: "${mapName}"` : ''}${cascadeStr})\n`;
@@ -104,7 +110,6 @@ datasource db {
                 else {
                     section += `\t${key} ${relatedModel._collection}${requiredString} @relation(${relationName ? `"${relationName}", ` : ''}fields: [${relationFieldName}], references: [${relatedToField}]${mapName ? `, map: "${mapName}"` : ''}${cascadeStr})\n`;
                     if (!bindingFieldExists) {
-                        const relatedFieldMeta = relatedModelMetadatas[relatedToField];
                         if (!relatedFieldMeta.metadata.required) {
                             requiredString = '';
                         }
@@ -113,24 +118,29 @@ datasource db {
                         if (relationMeta.required === false) {
                             requiredString = '?';
                         }
+                        let appendix = '';
+                        if (foundInverseRelation && foundInverseRelation.metadata.singular) {
+                            appendix = ' @unique';
+                            requiredString = '?';
+                        }
                         // Add relation field with appropriate type based on database
                         if (dbType === 'mongodb') {
-                            section += `\t${relationFieldName} String${requiredString} @db.ObjectId\n`;
+                            section += `\t${relationFieldName} String${requiredString} @db.ObjectId${appendix}\n`;
                         }
                         else if (dbType === 'mysql') {
                             // For MySQL, determine the type based on the related model's ID type
-                            section += `\t${relationFieldName} ${relatedFieldType}${requiredString}\n`;
+                            section += `\t${relationFieldName} ${relatedFieldType}${requiredString}${appendix}\n`;
                         }
                         else if (dbType === 'postgresql' || dbType === 'postgres') {
                             if (relatedFieldType === 'String') {
-                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString} @db.Uuid\n`;
+                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString} @db.Uuid${appendix}\n`;
                             }
                             else {
-                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString}\n`;
+                                section += `\t${relationFieldName} ${relatedFieldType}${requiredString}${appendix}\n`;
                             }
                         }
                         else {
-                            section += `\t${relationFieldName} String${requiredString}\n`;
+                            section += `\t${relationFieldName} String${requiredString}${appendix}\n`;
                         }
                     }
                 }
@@ -145,11 +155,12 @@ datasource db {
                 const relationKey = [relatedModelName, modelName].join('_');
                 const relationIndex = relation_manager_1.RelationManager.getRelationCounter(relationKey, true);
                 const relationName = relation_manager_1.RelationManager.getShortenedRelationName(relatedModelName, modelName, relationIndex);
+                const singular = relationMeta.singular;
                 let relationTag = '';
                 if (relationMeta.relationName) {
                     relationTag = ` @relation("${relationMeta.relationName}")`;
                 }
-                section += `\t${key} ${relationMeta.inversionModel._collection}[]${relationTag}\n`;
+                section += `\t${key} ${relationMeta.inversionModel._collection}${singular ? '?' : '[]'}${relationTag}\n`;
                 relation_manager_1.RelationManager.completeRelation(relationKey, relationIndex, true);
             }
             else if (annotationType === 'InverseTimeSeries') {

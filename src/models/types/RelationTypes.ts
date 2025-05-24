@@ -20,6 +20,7 @@ export type RelManyMetaType<T extends IRWSModel> = {
     [key: string]: {
         key: string, 
         inversionModel: OpModelType<T>, 
-        foreignKey: string
+        foreignKey: string,
+        singular: boolean
     }
 };

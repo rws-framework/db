@@ -59,7 +59,7 @@ function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourc
 
             const metaOpts: InverseRelationOpts = {
                 ...relationOptions,
-                key,
+                key,                
                 inversionModel: model,
                 foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : guessForeignKey(model, source, decoratorsData),
                 // Generate a unique relation name if one is not provided

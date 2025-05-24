@@ -48,12 +48,22 @@ class HydrateUtils {
             const relationEnabled = !RelationUtils_1.RelationUtils.checkRelDisabled(model, relMeta.key);
             if (relationEnabled) {
                 const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(model.constructor);
-                model[relMeta.key] = await relMeta.inversionModel.findBy({
-                    conditions: {
-                        [relMeta.foreignKey]: data[pk]
-                    },
-                    allowRelations: false
-                });
+                if (relMeta.singular) {
+                    model[relMeta.key] = await relMeta.inversionModel.findOneBy({
+                        conditions: {
+                            [relMeta.foreignKey]: data[pk]
+                        },
+                        allowRelations: false
+                    });
+                }
+                else {
+                    model[relMeta.key] = await relMeta.inversionModel.findBy({
+                        conditions: {
+                            [relMeta.foreignKey]: data[pk]
+                        },
+                        allowRelations: false
+                    });
+                }
             }
         }
         // Handle one-to-one relations

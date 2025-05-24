@@ -47,7 +47,8 @@ export class RelationUtils {
                     relIds[key] = {       
                         key: resolvedMetadata.key,         
                         inversionModel: resolvedMetadata.inversionModel,
-                        foreignKey: resolvedMetadata.foreignKey                   
+                        foreignKey: resolvedMetadata.foreignKey,     
+                        singular: resolvedMetadata?.singular || false             
                     };
                 }
             }                         

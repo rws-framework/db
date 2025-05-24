@@ -61,13 +61,22 @@ export class HydrateUtils {
 
                  if (relationEnabled) {         
                     const pk = ModelUtils.findPrimaryKeyFields(model.constructor as OpModelType<any>) as string;
-                            
-                    model[relMeta.key] = await relMeta.inversionModel.findBy({
-                         conditions: {
-                             [relMeta.foreignKey]: data[pk]
-                         },
-                         allowRelations: false
-                     });          
+                    
+                    if(relMeta.singular){
+                        model[relMeta.key] = await relMeta.inversionModel.findOneBy({
+                            conditions: {
+                                [relMeta.foreignKey]: data[pk]
+                            },
+                            allowRelations: false
+                       });
+                    } else {
+                        model[relMeta.key] = await relMeta.inversionModel.findBy({
+                            conditions: {
+                                [relMeta.foreignKey]: data[pk]
+                            },
+                            allowRelations: false
+                       });
+                    }                              
                  }                                
              }
              
