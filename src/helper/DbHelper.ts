@@ -70,8 +70,8 @@ export class DbHelper {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType: string, dbUrl: string): string {
-        return SchemaGenerator.generateBaseSchema(dbType, dbUrl);
+    static generateBaseSchema(dbType: string, dbUrl: string, output?: string, binaryTargets?: string[]): string {
+        return SchemaGenerator.generateBaseSchema(dbType, dbUrl, output, binaryTargets);
     }
 
     /**

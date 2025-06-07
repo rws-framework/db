@@ -4,6 +4,8 @@ export interface IDbConfigParams {
     db_name?: string;
     db_type?: 'mongodb' | 'mysql' | 'sqlite' | 'postgresql' | 'postgres';
     db_models?: OpModelType<any>[];
+    db_prisma_output?: string;
+    db_prisma_binary_targets?: string[];
 }
 export interface IdGeneratorOptions {
     useUuid?: boolean;

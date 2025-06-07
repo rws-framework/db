@@ -52,8 +52,8 @@ class DbHelper {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType, dbUrl) {
-        return db_1.SchemaGenerator.generateBaseSchema(dbType, dbUrl);
+    static generateBaseSchema(dbType, dbUrl, output, binaryTargets) {
+        return db_1.SchemaGenerator.generateBaseSchema(dbType, dbUrl, output, binaryTargets);
     }
     /**
      * Get the directory and path for the Prisma schema file

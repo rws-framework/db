@@ -41,7 +41,7 @@ export declare class DbHelper {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType: string, dbUrl: string): string;
+    static generateBaseSchema(dbType: string, dbUrl: string, output?: string, binaryTargets?: string[]): string;
     /**
      * Get the directory and path for the Prisma schema file
      */

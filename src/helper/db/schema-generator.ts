@@ -30,17 +30,24 @@ export class SchemaGenerator {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType: string, dbUrl: string): string {
+    static generateBaseSchema(dbType: string, dbUrl: string, output?: string, binaryTargets?: string[]): string {
         process.env = { ...process.env, [this.dbUrlVarName]: dbUrl };
 
         return `generator client {
     provider = "prisma-client-js"
+    ${output ? `output = "${this.ospath(output)}"` : ''}
+    ${binaryTargets ? `binaryTargets = ${JSON.stringify(binaryTargets)}` : ''}
 }
 
 datasource db {
     provider = "${dbType}"
-    url = env("${this.dbUrlVarName}")
+    url = env("${this.dbUrlVarName}")    
 }`;
+    }
+
+    private static ospath(outPath: string): string
+    {
+        return outPath.split('')[1] === ':' ? outPath.replace(/\\/g,'\\\\') : outPath
     }
 
     /**
@@ -356,8 +363,10 @@ datasource db {
     static async installPrisma(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void> {
         const dbUrl = configService.get('db_url');
         const dbType = configService.get('db_type') || 'mongodb';
+        const dbPrismaOutput = configService.get('db_prisma_output');
+        const dbPrismaBinaryTargets = configService.get('db_prisma_binary_targets');
 
-        let template: string = this.generateBaseSchema(dbType, dbUrl);
+        let template: string = this.generateBaseSchema(dbType, dbUrl, dbPrismaOutput, dbPrismaBinaryTargets);
 
         const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');
 

@@ -12,7 +12,8 @@ export declare class SchemaGenerator {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType: string, dbUrl: string): string;
+    static generateBaseSchema(dbType: string, dbUrl: string, output?: string, binaryTargets?: string[]): string;
+    private static ospath;
     /**
      * Generate model sections for the schema
      * @param model The model to generate a section for
