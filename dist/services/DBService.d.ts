@@ -3,6 +3,7 @@ import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IPaginationParams } from '../types/FindParams';
+import { OpModelType } from '../models/interfaces/OpModelType';
 interface IDBClientCreate {
     dbUrl?: string;
     dbName?: string;
@@ -33,5 +34,8 @@ declare class DBService {
     createTimeSeriesCollection(collection_name: string): Promise<Collection<ITimeSeries>>;
     private getCollectionHandler;
     private setOpts;
+    count<T = any>(opModel: OpModelType<T>, where?: {
+        [k: string]: any;
+    }): Promise<number>;
 }
 export { DBService, IDBClientCreate };

@@ -64,6 +64,9 @@ declare class RWSModel<T> implements IModel {
     private checkRelDisabled;
     static setServices(services: IRWSModelServices): void;
     getDb(): DBService;
+    static count(where?: {
+        [k: string]: any;
+    }): Promise<number>;
     static getDb(): DBService;
     reload(): Promise<T | null>;
 }

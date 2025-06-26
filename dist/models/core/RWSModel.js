@@ -262,6 +262,9 @@ class RWSModel {
     getDb() {
         return this.services.dbService;
     }
+    static async count(where = {}) {
+        return await this.services.dbService.count(this, where);
+    }
     static getDb() {
         return this.services.dbService;
     }

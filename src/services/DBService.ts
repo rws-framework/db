@@ -5,6 +5,7 @@ import { IModel } from '../models/interfaces/IModel';
 import chalk from 'chalk';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IPaginationParams } from '../types/FindParams';
+import { OpModelType } from '../models/interfaces/OpModelType';
 
 interface IDBClientCreate {
   dbUrl?: string;
@@ -286,6 +287,10 @@ class DBService {
     {    
         this.opts = opts;
         return this;
+    }
+
+    public async count<T = any>(opModel: OpModelType<T>, where: {[k: string]: any} = {}): Promise<number>{
+        return await this.getCollectionHandler(opModel._collection).count(where);
     }
 }
 

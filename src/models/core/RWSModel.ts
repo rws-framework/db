@@ -361,6 +361,10 @@ class RWSModel<T> implements IModel {
         return this.services.dbService;
     }
 
+    public static async count(where: {[k: string]: any} = {}): Promise<number>{
+        return await this.services.dbService.count(this as OpModelType<any>, where);
+    }
+
     public static getDb(): DBService
     {
         return this.services.dbService;

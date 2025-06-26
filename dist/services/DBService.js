@@ -206,5 +206,8 @@ class DBService {
         this.opts = opts;
         return this;
     }
+    async count(opModel, where = {}) {
+        return await this.getCollectionHandler(opModel._collection).count(where);
+    }
 }
 exports.DBService = DBService;
