@@ -7,6 +7,7 @@ export type FindByType = {
     allowRelations?: boolean;
     fullData?: boolean;
     pagination?: IPaginationParams;
+    cancelPostLoad?: boolean;
 };
 export interface IPaginationParams {
     page: number;

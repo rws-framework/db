@@ -28,7 +28,18 @@ export interface OpModelType<T> {
     create<T extends RWSModel<T>>(this: new () => T, data: any): Promise<T>;
     getRelationOneMeta(model: any, classFields: string[]): Promise<RelOneMetaType<IRWSModel>>;
     getRelationManyMeta(model: any, classFields: string[]): Promise<RelManyMetaType<IRWSModel>>;
-    getCollection(): string;
+    getCollection(): string | null;
     getDb(): DBService;
     setServices(services: IRWSModelServices): void;
+    watchCollection<T extends RWSModel<T>>(this: OpModelType<T>, preRun: () => void): Promise<any>;
+    count(where?: {
+        [k: string]: any;
+    }): Promise<number>;
+    isSubclass<T extends RWSModel<T>, C extends new () => T>(constructor: C, baseClass: new () => T): boolean;
+    getModelAnnotations<T extends unknown>(constructor: new () => T): Promise<Record<string, {
+        annotationType: string;
+        metadata: any;
+    }>>;
+    checkTimeSeries(constructor: any): boolean;
+    checkDbVariable(constructor: any, variable: string): Promise<boolean>;
 }

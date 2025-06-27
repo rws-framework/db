@@ -9,5 +9,5 @@ export declare class HydrateUtils {
     }): Promise<void>;
     static hydrateRelations(model: RWSModel<any>, relManyData: RelManyMetaType<IRWSModel>, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: {
         [key: string]: any;
-    }): Promise<void>;
+    }, postLoadExecute?: boolean): Promise<void>;
 }

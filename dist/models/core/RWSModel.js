@@ -27,6 +27,7 @@ class RWSModel {
     static _BANNED_KEYS = ['_collection'];
     static allModels = [];
     static _CUT_KEYS = [];
+    postLoadExecuted = false;
     constructor(data = null) {
         if (!this.getCollection()) {
             throw new Error('Model must have a collection defined');
@@ -42,6 +43,12 @@ class RWSModel {
         else {
             throw new Error('Time Series not supported in synchronous constructor. Use `await Model.create(data)` static method to instantiate this model.');
         }
+    }
+    isPostLoadExecuted() {
+        return this.postLoadExecuted;
+    }
+    setPostLoadExecuted() {
+        this.postLoadExecuted = true;
     }
     checkForInclusionWithThrow() {
         const constructor = this.constructor;
@@ -85,7 +92,7 @@ class RWSModel {
     bindRelation(key, relatedModel) {
         return RelationUtils_1.RelationUtils.bindRelation(relatedModel);
     }
-    async _asyncFill(data, fullDataMode = false, allowRelations = true) {
+    async _asyncFill(data, fullDataMode = false, allowRelations = true, postLoadExecute = true) {
         const collections_to_models = {};
         const classFields = FieldsHelper_1.FieldsHelper.getAllClassFields(this.constructor);
         // Get both relation metadata types asynchronously
@@ -102,6 +109,10 @@ class RWSModel {
         }
         // Process regular fields and time series
         await HydrateUtils_1.HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
+        if (!this.isPostLoadExecuted() && postLoadExecute) {
+            await this.postLoad();
+            this.setPostLoadExecuted();
+        }
         return this;
     }
     getModelScalarFields(model) {
@@ -159,34 +170,37 @@ class RWSModel {
         let updatedModelData = data;
         const entryExists = await ModelUtils_1.ModelUtils.entryExists(this);
         if (entryExists) {
-            this.preUpdate();
+            await this.preUpdate();
             const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
             updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
             await this._asyncFill(updatedModelData);
-            this.postUpdate();
+            await this.postUpdate();
         }
         else {
-            this.preCreate();
+            await this.preCreate();
             const isTimeSeries = false; //this instanceof timeSeriesModel;
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);
             await this._asyncFill(updatedModelData);
-            this.postCreate();
+            await this.postCreate();
         }
         return this;
     }
     static async getModelAnnotations(constructor) {
         return ModelUtils_1.ModelUtils.getModelAnnotations(constructor);
     }
-    preUpdate() {
+    async preUpdate() {
         return;
     }
-    postUpdate() {
+    async postLoad() {
         return;
     }
-    preCreate() {
+    async postUpdate() {
         return;
     }
-    postCreate() {
+    async preCreate() {
+        return;
+    }
+    async postCreate() {
         return;
     }
     static isSubclass(constructor, baseClass) {

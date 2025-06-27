@@ -15,7 +15,10 @@ declare class RWSModel<T> implements IModel {
     static _BANNED_KEYS: string[];
     static allModels: OpModelType<any>[];
     static _CUT_KEYS: string[];
+    private postLoadExecuted;
     constructor(data?: any);
+    isPostLoadExecuted(): boolean;
+    setPostLoadExecuted(): void;
     checkForInclusionWithThrow(): void;
     static checkForInclusionWithThrow(this: OpModelType<any>, checkModelType: string): void;
     checkForInclusion(): boolean;
@@ -27,7 +30,7 @@ declare class RWSModel<T> implements IModel {
             id: string | number;
         };
     };
-    _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean): Promise<T>;
+    _asyncFill(data: any, fullDataMode?: boolean, allowRelations?: boolean, postLoadExecute?: boolean): Promise<T>;
     private getModelScalarFields;
     private getRelationOneMeta;
     static getRelationOneMeta(model: any, classFields: string[]): Promise<import("..").RelOneMetaType<import("../..").IRWSModel>>;
@@ -42,10 +45,11 @@ declare class RWSModel<T> implements IModel {
         annotationType: string;
         metadata: any;
     }>>;
-    preUpdate(): void;
-    postUpdate(): void;
-    preCreate(): void;
-    postCreate(): void;
+    preUpdate(): Promise<void>;
+    postLoad(): Promise<void>;
+    postUpdate(): Promise<void>;
+    preCreate(): Promise<void>;
+    postCreate(): Promise<void>;
     static isSubclass<T extends RWSModel<T>, C extends new () => T>(constructor: C, baseClass: new () => T): boolean;
     hasTimeSeries(): boolean;
     static checkTimeSeries(constructor: any): boolean;
@@ -68,6 +72,6 @@ declare class RWSModel<T> implements IModel {
         [k: string]: any;
     }): Promise<number>;
     static getDb(): DBService;
-    reload(): Promise<T | null>;
+    reload(): Promise<RWSModel<T> | null>;
 }
 export { RWSModel };

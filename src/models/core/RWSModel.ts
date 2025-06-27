@@ -28,6 +28,8 @@ class RWSModel<T> implements IModel {
     static allModels: OpModelType<any>[] = [];
     static _CUT_KEYS: string[] = [];
 
+    private postLoadExecuted: boolean = false;
+
     constructor(data: any = null) {    
         if(!this.getCollection()){
             throw new Error('Model must have a collection defined');
@@ -45,7 +47,16 @@ class RWSModel<T> implements IModel {
         }else{
             throw new Error('Time Series not supported in synchronous constructor. Use `await Model.create(data)` static method to instantiate this model.');
         }
-    }    
+    } 
+    
+    isPostLoadExecuted(): boolean
+    {
+        return this.postLoadExecuted;
+    }
+
+    setPostLoadExecuted(){
+        this.postLoadExecuted = true;
+    }
     
     checkForInclusionWithThrow(): void {
         const constructor = this.constructor as OpModelType<any>;
@@ -98,7 +109,7 @@ class RWSModel<T> implements IModel {
         return RelationUtils.bindRelation(relatedModel);
     }
 
-    public async _asyncFill(data: any, fullDataMode = false, allowRelations = true): Promise<T> {
+    public async _asyncFill(data: any, fullDataMode = false, allowRelations = true, postLoadExecute = true): Promise<T> {        
         const collections_to_models: {[key: string]: any} = {};               
         const classFields = FieldsHelper.getAllClassFields(this.constructor);        
     
@@ -120,8 +131,13 @@ class RWSModel<T> implements IModel {
         }
     
         // Process regular fields and time series
-         await HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
+        await HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
     
+        if(!this.isPostLoadExecuted() && postLoadExecute){
+            await this.postLoad();
+            this.setPostLoadExecuted();
+        }        
+
         return this as any as T;
     }   
 
@@ -205,16 +221,16 @@ class RWSModel<T> implements IModel {
         const entryExists = await ModelUtils.entryExists(this);        
 
         if (entryExists) {
-            this.preUpdate();
+            await this.preUpdate();
 
             const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
 
             updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
 
             await this._asyncFill(updatedModelData);
-            this.postUpdate();
+            await this.postUpdate();
         } else {
-            this.preCreate();      
+            await this.preCreate();      
       
             const isTimeSeries = false;//this instanceof timeSeriesModel;
 
@@ -222,7 +238,7 @@ class RWSModel<T> implements IModel {
 
             await this._asyncFill(updatedModelData);   
 
-            this.postCreate();
+            await this.postCreate();
         }
   
         return this;
@@ -232,19 +248,23 @@ class RWSModel<T> implements IModel {
         return ModelUtils.getModelAnnotations(constructor);
     }
 
-    public preUpdate(): void {
+    public async preUpdate(): Promise<void> {
         return;
     }
 
-    public postUpdate(): void {
+    public async postLoad(): Promise<void> {
         return;
     }
 
-    public preCreate(): void {
+    public async postUpdate(): Promise<void> {
         return;
     }
 
-    public postCreate(): void {
+    public async preCreate(): Promise<void> {
+        return;
+    }
+
+    public async postCreate(): Promise<void> {
         return;
     }
 
@@ -370,9 +390,9 @@ class RWSModel<T> implements IModel {
         return this.services.dbService;
     }
 
-    public async reload(): Promise<T | null>
+    public async reload(): Promise<RWSModel<T> | null>
     {
-        const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
+        const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<T>);
         const where: any = {};
                     
         if(Array.isArray(pk)){            

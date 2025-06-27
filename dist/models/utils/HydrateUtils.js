@@ -38,7 +38,7 @@ class HydrateUtils {
             }
         }
     }
-    static async hydrateRelations(model, relManyData, relOneData, seriesHydrationfields, fullDataMode, data) {
+    static async hydrateRelations(model, relManyData, relOneData, seriesHydrationfields, fullDataMode, data, postLoadExecute = false) {
         // Handle many-to-many relations
         for (const key in relManyData) {
             if (!fullDataMode && model.constructor._CUT_KEYS.includes(key)) {
@@ -53,7 +53,8 @@ class HydrateUtils {
                         conditions: {
                             [relMeta.foreignKey]: data[pk]
                         },
-                        allowRelations: false
+                        allowRelations: false,
+                        cancelPostLoad: !postLoadExecute
                     });
                 }
                 else {
@@ -61,7 +62,8 @@ class HydrateUtils {
                         conditions: {
                             [relMeta.foreignKey]: data[pk]
                         },
-                        allowRelations: false
+                        allowRelations: false,
+                        cancelPostLoad: !postLoadExecute
                     });
                 }
             }
