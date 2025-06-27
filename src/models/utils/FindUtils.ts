@@ -27,7 +27,7 @@ export class FindUtils {
 
         if (dbData) {
             const inst: T = new (opModel as { new(): T })();
-            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams.cancelPostLoad ? false : true);        
+            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams?.cancelPostLoad ? false : true);        
             return loaded as T;
         }
 
@@ -51,7 +51,7 @@ export class FindUtils {
 
         if (dbData) {
             const inst: T = new (opModel as { new(): T })();
-            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams.cancelPostLoad ? false : true);
+            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams?.cancelPostLoad ? false : true);
             return loaded as T;
         }
 
@@ -80,7 +80,7 @@ export class FindUtils {
                 for (const data of dbData) {
                     const inst: T = new (opModel as { new(): T })();
 
-                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams.cancelPostLoad ? false : true)) as T);
+                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams?.cancelPostLoad ? false : true)) as T);
                 }
 
                 return instanced;
@@ -114,7 +114,7 @@ export class FindUtils {
 
                 for (const data of dbData) {
                     const inst: T = new (opModel as { new(): T })();
-                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams.cancelPostLoad ? false : true)) as T);
+                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams?.cancelPostLoad ? false : true)) as T);
                 }
 
                 return instanced;

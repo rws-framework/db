@@ -13,7 +13,7 @@ class FindUtils {
         const dbData = await opModel.services.dbService.findOneBy(collection, conditions, fields, ordering);
         if (dbData) {
             const inst = new opModel();
-            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams.cancelPostLoad ? false : true);
+            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams?.cancelPostLoad ? false : true);
             return loaded;
         }
         return null;
@@ -28,7 +28,7 @@ class FindUtils {
         const dbData = await opModel.services.dbService.findOneBy(collection, { id }, fields, ordering);
         if (dbData) {
             const inst = new opModel();
-            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams.cancelPostLoad ? false : true);
+            const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams?.cancelPostLoad ? false : true);
             return loaded;
         }
         return null;
@@ -48,7 +48,7 @@ class FindUtils {
                 const instanced = [];
                 for (const data of dbData) {
                     const inst = new opModel();
-                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams.cancelPostLoad ? false : true)));
+                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams?.cancelPostLoad ? false : true)));
                 }
                 return instanced;
             }
@@ -73,7 +73,7 @@ class FindUtils {
                 const instanced = [];
                 for (const data of dbData) {
                     const inst = new opModel();
-                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams.cancelPostLoad ? false : true)));
+                    instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams?.cancelPostLoad ? false : true)));
                 }
                 return instanced;
             }
