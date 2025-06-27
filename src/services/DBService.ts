@@ -290,7 +290,7 @@ class DBService {
     }
 
     public async count<T = any>(opModel: OpModelType<T>, where: {[k: string]: any} = {}): Promise<number>{
-        return await this.getCollectionHandler(opModel._collection).count(where);
+        return await this.getCollectionHandler(opModel._collection).count({where});
     }
 }
 
