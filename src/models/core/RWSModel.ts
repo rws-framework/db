@@ -101,8 +101,8 @@ class RWSModel<T> implements IModel {
         return this;
     }
 
-    protected hasRelation(key: string): boolean {
-        return RelationUtils.hasRelation(this, key);
+    protected async hasRelation(key: string): Promise<boolean> {
+        return RelationUtils.hasRelation((this as any).constructor, key);
     }
 
     protected bindRelation(key: string, relatedModel: RWSModel<any>): { connect: { id: string | number } } {        
@@ -177,7 +177,7 @@ class RWSModel<T> implements IModel {
         const timeSeriesHydrationFields: string[] = [];
       
         for (const key in (this as any)) { 
-            if (this.hasRelation(key)) {                
+            if (await this.hasRelation(key)) {                
                 data[key] = this.bindRelation(key, this[key]);                
                 continue;
             }
@@ -192,6 +192,7 @@ class RWSModel<T> implements IModel {
                 ).includes(key) && 
                 !timeSeriesHydrationFields.includes(key)
             ;
+
     
             if (passedFieldCondition) {                      
                 data[key] = this[key];
@@ -201,8 +202,8 @@ class RWSModel<T> implements IModel {
                 data[key] = this[key];
                 timeSeriesHydrationFields.push(timeSeriesIds[key].hydrationField);              
             }
-        }                
-    
+        }               
+            
         return data;
     }  
 

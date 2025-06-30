@@ -86,8 +86,8 @@ class RWSModel {
         }
         return this;
     }
-    hasRelation(key) {
-        return RelationUtils_1.RelationUtils.hasRelation(this, key);
+    async hasRelation(key) {
+        return RelationUtils_1.RelationUtils.hasRelation(this.constructor, key);
     }
     bindRelation(key, relatedModel) {
         return RelationUtils_1.RelationUtils.bindRelation(relatedModel);
@@ -138,7 +138,7 @@ class RWSModel {
         const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(this);
         const timeSeriesHydrationFields = [];
         for (const key in this) {
-            if (this.hasRelation(key)) {
+            if (await this.hasRelation(key)) {
                 data[key] = this.bindRelation(key, this[key]);
                 continue;
             }

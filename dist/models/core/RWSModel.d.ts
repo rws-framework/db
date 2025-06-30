@@ -24,7 +24,7 @@ declare class RWSModel<T> implements IModel {
     checkForInclusion(): boolean;
     static checkForInclusion(this: OpModelType<any>, checkModelType: string): boolean;
     protected _fill(data: any): RWSModel<T>;
-    protected hasRelation(key: string): boolean;
+    protected hasRelation(key: string): Promise<boolean>;
     protected bindRelation(key: string, relatedModel: RWSModel<any>): {
         connect: {
             id: string | number;

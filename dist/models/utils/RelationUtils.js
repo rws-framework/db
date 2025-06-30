@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RelationUtils = void 0;
+const ModelUtils_1 = require("./ModelUtils");
 class RelationUtils {
     static async getRelationOneMeta(model, classFields) {
         const relIds = {};
@@ -48,15 +49,22 @@ class RelationUtils {
         return relIds;
     }
     static bindRelation(relatedModel) {
+        if (!relatedModel.id) {
+            return null;
+        }
         return {
             connect: {
                 id: relatedModel.id
             }
         };
     }
-    static hasRelation(model, key) {
-        // Check if the property exists and is an object with an id property
-        return !!model[key] && typeof model[key] === 'object' && model[key] !== null && 'id' in model[key];
+    static async hasRelation(constructor, variable) {
+        const dbAnnotations = await ModelUtils_1.ModelUtils.getModelAnnotations(constructor);
+        const dbProperties = Object.keys(dbAnnotations)
+            .map((key) => { return { ...dbAnnotations[key], key }; })
+            .filter((element) => element.annotationType === 'Relation')
+            .map((element) => element.key);
+        return dbProperties.includes(variable);
     }
     static checkRelDisabled(model, key) {
         const constructor = model.constructor;

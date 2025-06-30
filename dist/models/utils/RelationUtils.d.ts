@@ -8,7 +8,7 @@ export declare class RelationUtils {
         connect: {
             id: string | number;
         };
-    };
-    static hasRelation(model: RWSModel<any>, key: string): boolean;
+    } | null;
+    static hasRelation(constructor: any, variable: string): Promise<boolean>;
     static checkRelDisabled(model: RWSModel<any>, key: string): boolean;
 }

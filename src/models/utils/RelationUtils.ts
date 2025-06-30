@@ -1,6 +1,7 @@
 import { RelOneMetaType, RelManyMetaType } from '../types/RelationTypes';
 import { IRWSModel } from '../../types/IRWSModel';
 import { OpModelType, RWSModel } from '../_model';
+import { ModelUtils } from './ModelUtils';
 
 export class RelationUtils {
     static async getRelationOneMeta(model: RWSModel<any>, classFields: string[]): Promise<RelOneMetaType<IRWSModel>> {
@@ -57,7 +58,11 @@ export class RelationUtils {
         return relIds;
     }
 
-    static bindRelation(relatedModel: RWSModel<any>): { connect: { id: string | number } } {
+    static bindRelation(relatedModel: RWSModel<any>): { connect: { id: string | number } } | null {
+        if(!relatedModel.id){
+            return null;
+        }
+
         return {
             connect: {
                 id: relatedModel.id
@@ -65,9 +70,16 @@ export class RelationUtils {
         };
     }
 
-    static hasRelation(model: RWSModel<any>, key: string): boolean {
-        // Check if the property exists and is an object with an id property
-        return !!model[key] && typeof model[key] === 'object' && model[key] !== null && 'id' in model[key];
+    static async hasRelation(constructor: any, variable: string): Promise<boolean> {
+        const dbAnnotations = await ModelUtils.getModelAnnotations(constructor);
+        type AnnotationType = { annotationType: string, key: string };
+    
+        const dbProperties: string[] = Object.keys(dbAnnotations)
+            .map((key: string): AnnotationType => {return {...dbAnnotations[key], key};})
+            .filter((element: AnnotationType) => element.annotationType === 'Relation' )
+            .map((element: AnnotationType) => element.key);
+    
+        return dbProperties.includes(variable);
     }
 
     static checkRelDisabled(model: RWSModel<any>, key: string): boolean {
