@@ -10,5 +10,6 @@ export declare class RelationUtils {
         };
     } | null;
     static hasRelation(constructor: any, variable: string): Promise<boolean>;
+    static getRelationKey(constructor: any, variable: string): Promise<string | null>;
     static checkRelDisabled(model: RWSModel<any>, key: string): boolean;
 }

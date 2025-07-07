@@ -2,6 +2,7 @@ import { RelOneMetaType, RelManyMetaType } from '../types/RelationTypes';
 import { IRWSModel } from '../../types/IRWSModel';
 import { OpModelType, RWSModel } from '../_model';
 import { ModelUtils } from './ModelUtils';
+import { IRelationOpts } from 'src/decorators/Relation';
 
 export class RelationUtils {
     static async getRelationOneMeta(model: RWSModel<any>, classFields: string[]): Promise<RelOneMetaType<IRWSModel>> {
@@ -58,8 +59,8 @@ export class RelationUtils {
         return relIds;
     }
 
-    static bindRelation(relatedModel: RWSModel<any>): { connect: { id: string | number } } | null {
-        if(!relatedModel.id){
+    static bindRelation(relatedModel: RWSModel<any>): { connect: { id: string | number } } | null {    
+        if(!relatedModel || !relatedModel.id){
             return null;
         }
 
@@ -80,6 +81,24 @@ export class RelationUtils {
             .map((element: AnnotationType) => element.key);
     
         return dbProperties.includes(variable);
+    }
+
+    static async getRelationKey(constructor: any, variable: string): Promise<string | null> {
+        const dbAnnotations = await ModelUtils.getModelAnnotations(constructor);
+        type AnnotationType = { annotationType: string, key: string };
+    
+        const relationMeta = Object.keys(dbAnnotations)
+            .map((key: string) => {return {...dbAnnotations[key], key};})
+            .filter((element: AnnotationType) => element.annotationType === 'Relation' )
+            .find((element: AnnotationType) => element.key === variable) as unknown as { metadata: IRelationOpts };
+        ;
+        
+
+        if(!relationMeta){
+            return null;
+        }
+    
+        return relationMeta.metadata.relationField;
     }
 
     static checkRelDisabled(model: RWSModel<any>, key: string): boolean {

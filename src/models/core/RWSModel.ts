@@ -105,6 +105,10 @@ class RWSModel<T> implements IModel {
         return RelationUtils.hasRelation((this as any).constructor, key);
     }
 
+    protected async getRelationKey(key: string): Promise<string> {
+        return RelationUtils.getRelationKey((this as any).constructor, key);
+    }   
+
     protected bindRelation(key: string, relatedModel: RWSModel<any>): { connect: { id: string | number } } {        
         return RelationUtils.bindRelation(relatedModel);
     }
@@ -178,7 +182,15 @@ class RWSModel<T> implements IModel {
       
         for (const key in (this as any)) { 
             if (await this.hasRelation(key)) {                
-                data[key] = this.bindRelation(key, this[key]);                
+                data[key] = this.bindRelation(key, this[key]);  
+                
+                if(data[key] === null){
+                    const relationKey = await this.getRelationKey(key);
+                    if(relationKey){
+                        data[relationKey] = null;
+                        delete data[key];
+                    }
+                }            
                 continue;
             }
     

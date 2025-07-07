@@ -49,7 +49,7 @@ class RelationUtils {
         return relIds;
     }
     static bindRelation(relatedModel) {
-        if (!relatedModel.id) {
+        if (!relatedModel || !relatedModel.id) {
             return null;
         }
         return {
@@ -65,6 +65,18 @@ class RelationUtils {
             .filter((element) => element.annotationType === 'Relation')
             .map((element) => element.key);
         return dbProperties.includes(variable);
+    }
+    static async getRelationKey(constructor, variable) {
+        const dbAnnotations = await ModelUtils_1.ModelUtils.getModelAnnotations(constructor);
+        const relationMeta = Object.keys(dbAnnotations)
+            .map((key) => { return { ...dbAnnotations[key], key }; })
+            .filter((element) => element.annotationType === 'Relation')
+            .find((element) => element.key === variable);
+        ;
+        if (!relationMeta) {
+            return null;
+        }
+        return relationMeta.metadata.relationField;
     }
     static checkRelDisabled(model, key) {
         const constructor = model.constructor;

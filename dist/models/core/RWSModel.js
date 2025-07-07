@@ -89,6 +89,9 @@ class RWSModel {
     async hasRelation(key) {
         return RelationUtils_1.RelationUtils.hasRelation(this.constructor, key);
     }
+    async getRelationKey(key) {
+        return RelationUtils_1.RelationUtils.getRelationKey(this.constructor, key);
+    }
     bindRelation(key, relatedModel) {
         return RelationUtils_1.RelationUtils.bindRelation(relatedModel);
     }
@@ -140,6 +143,13 @@ class RWSModel {
         for (const key in this) {
             if (await this.hasRelation(key)) {
                 data[key] = this.bindRelation(key, this[key]);
+                if (data[key] === null) {
+                    const relationKey = await this.getRelationKey(key);
+                    if (relationKey) {
+                        data[relationKey] = null;
+                        delete data[key];
+                    }
+                }
                 continue;
             }
             if (!(await this.isDbVariable(key))) {
