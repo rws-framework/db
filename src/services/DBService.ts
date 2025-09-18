@@ -292,6 +292,15 @@ class DBService {
     public async count<T = any>(opModel: OpModelType<T>, where: {[k: string]: any} = {}): Promise<number>{
         return await this.getCollectionHandler(opModel._collection).count({where});
     }
+
+    public getPrismaClient(): PrismaClient
+    {
+        if(!this.client || !this.connected){
+            this.connectToDB();
+        }
+
+        return this.client;
+    }
 }
 
 export { DBService, IDBClientCreate };

@@ -209,5 +209,11 @@ class DBService {
     async count(opModel, where = {}) {
         return await this.getCollectionHandler(opModel._collection).count({ where });
     }
+    getPrismaClient() {
+        if (!this.client || !this.connected) {
+            this.connectToDB();
+        }
+        return this.client;
+    }
 }
 exports.DBService = DBService;

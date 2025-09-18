@@ -1,3 +1,4 @@
+import { PrismaClient } from '@prisma/client';
 import { Collection, Db, MongoClient } from 'mongodb';
 import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
@@ -37,5 +38,6 @@ declare class DBService {
     count<T = any>(opModel: OpModelType<T>, where?: {
         [k: string]: any;
     }): Promise<number>;
+    getPrismaClient(): PrismaClient;
 }
 export { DBService, IDBClientCreate };
