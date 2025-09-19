@@ -19,16 +19,46 @@ export class TypeConverter {
         // Handle basic types
         if (input == 'Number') {
             let numberOverride = false;
-            if(modelType.dbOptions && modelType.dbOptions.mysql){
-                if(modelType.dbOptions.mysql.useType){
-                    if(['db.Float'].includes(modelType.dbOptions.mysql.useType)){
-                        input = 'Float';
-                        numberOverride = true;
+            
+            // Check for database-specific number type overrides
+            if(modelType.dbOptions) {
+                // For PostgreSQL, first check postgres-specific options, then inherit from mysql if available
+                if ((dbType === 'postgresql' || dbType === 'postgres')) {
+                    const pgOptions = modelType.dbOptions.postgres;
+                    const mysqlOptions = modelType.dbOptions.mysql;
+                    
+                    // Use postgres-specific type if available, otherwise inherit from mysql
+                    const typeSource = pgOptions?.useType ? pgOptions : mysqlOptions;
+                    
+                    if (typeSource?.useType) {
+                        if(['db.Float'].includes(typeSource.useType)){
+                            input = 'Float';
+                            numberOverride = true;
+                        }
+                        
+                        if(['db.Decimal'].includes(typeSource.useType)){
+                            input = 'Decimal';
+                            numberOverride = true;
+                        }
+                        
+                        if(['db.DoublePrecision'].includes(typeSource.useType)){
+                            input = 'Float'; // PostgreSQL DoublePrecision maps to Prisma Float
+                            numberOverride = true;
+                        }
                     }
+                }
+                // For MySQL, use mysql-specific options
+                else if (dbType === 'mysql' && modelType.dbOptions.mysql) {
+                    if(modelType.dbOptions.mysql.useType){
+                        if(['db.Float'].includes(modelType.dbOptions.mysql.useType)){
+                            input = 'Float';
+                            numberOverride = true;
+                        }
 
-                    if(['db.Decimal'].includes(modelType.dbOptions.mysql.useType)){
-                        input = 'Decimal';
-                        numberOverride = true;
+                        if(['db.Decimal'].includes(modelType.dbOptions.mysql.useType)){
+                            input = 'Decimal';
+                            numberOverride = true;
+                        }
                     }
                 }
             }
@@ -109,9 +139,32 @@ export class TypeConverter {
                 let tag = null;
 
                 if (metadata.dbOptions.mysql.useType && !metadata.dbOptions.mysql.useText) {
-                    const tagName = metadata.dbOptions.mysql.useType === 'VarChar' ?  'db.' + metadata.dbOptions.mysql.useType : metadata.dbOptions.mysql.useType;                    
-                    let tagParams = tagName === 'db.VarChar' && metadata.dbOptions.mysql.maxLength ? metadata.dbOptions.mysql.maxLength : (metadata.dbOptions.mysql?.params?.join(', ') || '');                    
-                    tag = `@${tagName}(${tagParams})`;                    
+                    let tagName = metadata.dbOptions.mysql.useType;
+                    let tagParams = '';
+                    
+                    // Handle different MySQL type formats - ensure db.something format
+                    if (tagName === 'db.VarChar') {
+                        tagName = '@db.VarChar';
+                        if (metadata.dbOptions.mysql.maxLength) {
+                            tagParams = `(${metadata.dbOptions.mysql.maxLength})`;
+                        }
+                    } else if (tagName === 'db.Float') {
+                        tagName = '@db.Float';
+                    } else if (tagName === 'db.Decimal') {
+                        tagName = '@db.Decimal';
+                        const params = metadata.dbOptions.mysql.params;
+                        if (params && params.length > 0) {
+                            tagParams = `(${params.join(', ')})`;
+                        }
+                    } else if (tagName.startsWith('db.')) {
+                        tagName = `@${tagName}`;
+                    }
+                    
+                    if (tagParams) {
+                        tag = `${tagName}${tagParams}`;
+                    } else {
+                        tag = tagName;
+                    }
                 }
 
                 if (metadata.dbOptions.mysql.useText) {
@@ -128,12 +181,52 @@ export class TypeConverter {
             }
 
             // Handle PostgreSQL-specific options
-            if ((dbType === 'postgresql' || dbType === 'postgres') && metadata.dbOptions.postgres) {
-                if (metadata.dbOptions.postgres.useText) {
+            if ((dbType === 'postgresql' || dbType === 'postgres') && metadata.dbOptions) {
+                const pgOptions = metadata.dbOptions.postgres;
+                const mysqlOptions = metadata.dbOptions.mysql;
+                
+                // Use postgres-specific options if available, otherwise inherit from mysql
+                const useText = pgOptions?.useText !== undefined ? pgOptions.useText : mysqlOptions?.useText;
+                const useUuid = pgOptions?.useUuid !== undefined ? pgOptions.useUuid : mysqlOptions?.useUuid;
+                const useType = pgOptions?.useType || mysqlOptions?.useType;
+                
+                if (useText) {
                     tags.push('@db.Text');
                 }
 
-                if (metadata.dbOptions.postgres.useUuid && metadata.tags?.includes('id')) {
+                if (useType && !useText) {
+                    let tagName = useType;
+                    let tagParams = '';
+                    
+                    // Map MySQL-specific types to PostgreSQL equivalents - only handle db.something format
+                    if (useType === 'db.Float') {
+                        tagName = '@db.Real'; // PostgreSQL Real type
+                    } else if (useType === 'db.Decimal') {
+                        tagName = '@db.Decimal';
+                        // Inherit params from the source (postgres or mysql)
+                        const params = pgOptions?.params || mysqlOptions?.params;
+                        if (params && params.length > 0) {
+                            tagParams = `(${params.join(', ')})`;
+                        }
+                    } else if (useType === 'db.VarChar') {
+                        tagName = '@db.VarChar';
+                        // For VarChar, check maxLength from mysql options if not in postgres
+                        const maxLength = mysqlOptions?.maxLength;
+                        if (maxLength) {
+                            tagParams = `(${maxLength})`;
+                        }
+                    } else if (useType.startsWith('db.')) {
+                        tagName = `@${useType}`;
+                    }
+                    
+                    if (tagParams) {
+                        tags.push(`${tagName}${tagParams}`);
+                    } else if (tagName !== useType) {
+                        tags.push(tagName);
+                    }
+                }
+
+                if (useUuid && metadata.tags?.includes('id')) {
                     tags.push('@default(uuid())');
                     tags.push('@db.Uuid');
                 }

@@ -8,6 +8,7 @@ export interface IDbOpts {
           params?: string[]
         };
         postgres?: {
+          useType?: string;
           useText?: boolean;
           useUuid?: boolean;
           params?: string[]

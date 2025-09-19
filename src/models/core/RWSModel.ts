@@ -137,7 +137,7 @@ class RWSModel<T> implements IModel {
         // Process regular fields and time series
         await HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
     
-        if(!this.isPostLoadExecuted() && postLoadExecute){
+        if(!this.isPostLoadExecuted() && postLoadExecute){            
             await this.postLoad();
             this.setPostLoadExecuted();
         }        

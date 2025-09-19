@@ -113,7 +113,7 @@ export class FindUtils {
                 const instanced: T[] = [];
 
                 for (const data of dbData) {
-                    const inst: T = new (opModel as { new(): T })();
+                    const inst: T = new (opModel as { new(): T })();                    
                     instanced.push((await inst._asyncFill(data, fullData, allowRelations, findParams?.cancelPostLoad ? false : true)) as T);
                 }
 
