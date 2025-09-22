@@ -142,14 +142,16 @@ class RWSModel {
         const timeSeriesHydrationFields = [];
         for (const key in this) {
             if (await this.hasRelation(key)) {
-                data[key] = this.bindRelation(key, this[key]);
-                if (data[key] === null) {
-                    const relationKey = await this.getRelationKey(key);
-                    if (relationKey) {
-                        data[relationKey] = null;
-                        delete data[key];
-                    }
+                if (this[key] === null) {
+                    // For null relations, use disconnect or set to null
+                    data[key] = {
+                        disconnect: true
+                    };
                 }
+                else {
+                    data[key] = this.bindRelation(key, this[key]);
+                }
+                // Don't try to set the foreign key directly anymore
                 continue;
             }
             if (!(await this.isDbVariable(key))) {
