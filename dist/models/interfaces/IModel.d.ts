@@ -9,7 +9,7 @@ export interface IModel {
     save: () => Promise<this>;
     getDb: () => DBService;
     getCollection: () => string | null;
-    reload: () => Promise<RWSModel<any>>;
+    reload: (inPostLoad: boolean) => Promise<RWSModel<any>>;
     delete: () => Promise<void>;
     hasTimeSeries: () => boolean;
     _asyncFill: (data: any, fullDataMode?: boolean, allowRelations?: boolean) => Promise<any>;

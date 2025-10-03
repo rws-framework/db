@@ -4,15 +4,16 @@ import { OpModelType } from '../interfaces/OpModelType';
 import { TrackType } from '../../decorators';
 import { FieldsHelper } from '../../helper/FieldsHelper';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
-import { RelationUtils } from '../utils/RelationUtils';
-
-import { TimeSeriesUtils } from '../utils/TimeSeriesUtils';
-import { ModelUtils } from '../utils/ModelUtils';
-// import timeSeriesModel from './TimeSeriesModel';      
 import { DBService } from '../../services/DBService';
 import { ISuperTagData } from '../../decorators/RWSCollection';
-import { HydrateUtils } from '../utils/HydrateUtils';
-import { FindUtils } from '../utils/FindUtils';
+import { 
+    RelationUtils, 
+    TimeSeriesUtils, 
+    ModelUtils, 
+    HydrateUtils, 
+    FindUtils, 
+    LoadingContext 
+} from '../utils';
 
 class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
@@ -137,9 +138,9 @@ class RWSModel<T> implements IModel {
         // Process regular fields and time series
         await HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
     
-        if(!this.isPostLoadExecuted() && postLoadExecute){            
-            await this.postLoad();
-            this.setPostLoadExecuted();
+        if(!this.isPostLoadExecuted() && postLoadExecute){       
+              
+            await this.postLoad();            
         }        
 
         return this as any as T;
@@ -266,7 +267,8 @@ class RWSModel<T> implements IModel {
         return;
     }
 
-    public async postLoad(): Promise<void> {
+    public async postLoad(): Promise<void> {  
+        this.setPostLoadExecuted();      
         return;
     }
 
@@ -404,7 +406,7 @@ class RWSModel<T> implements IModel {
         return this.services.dbService;
     }
 
-    public async reload(): Promise<RWSModel<T> | null>
+    public async reload(inPostLoad = false): Promise<RWSModel<T> | null>
     {
         const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<T>);
         const where: any = {};
@@ -417,7 +419,7 @@ class RWSModel<T> implements IModel {
             where[pk as string] = this[pk as string]
         }         
         
-        return await FindUtils.findOneBy(this.constructor as OpModelType<any>, { conditions: where });
+        return await FindUtils.findOneBy(this.constructor as OpModelType<any>, { conditions: where, cancelPostLoad: inPostLoad });
     }
 }
 
