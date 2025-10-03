@@ -12,7 +12,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RWSModel = void 0;
 const decorators_1 = require("../../decorators");
 const FieldsHelper_1 = require("../../helper/FieldsHelper");
-const utils_1 = require("../utils");
+const RelationUtils_1 = require("../utils/RelationUtils");
+const TimeSeriesUtils_1 = require("../utils/TimeSeriesUtils");
+const ModelUtils_1 = require("../utils/ModelUtils");
+const HydrateUtils_1 = require("../utils/HydrateUtils");
+const FindUtils_1 = require("../utils/FindUtils");
 class RWSModel {
     static services = {};
     id;
@@ -83,13 +87,13 @@ class RWSModel {
         return this;
     }
     async hasRelation(key) {
-        return utils_1.RelationUtils.hasRelation(this.constructor, key);
+        return RelationUtils_1.RelationUtils.hasRelation(this.constructor, key);
     }
     async getRelationKey(key) {
-        return utils_1.RelationUtils.getRelationKey(this.constructor, key);
+        return RelationUtils_1.RelationUtils.getRelationKey(this.constructor, key);
     }
     bindRelation(key, relatedModel) {
-        return utils_1.RelationUtils.bindRelation(relatedModel);
+        return RelationUtils_1.RelationUtils.bindRelation(relatedModel);
     }
     async _asyncFill(data, fullDataMode = false, allowRelations = true, postLoadExecute = true) {
         const collections_to_models = {};
@@ -104,36 +108,37 @@ class RWSModel {
         });
         const seriesHydrationfields = [];
         if (allowRelations) {
-            await utils_1.HydrateUtils.hydrateRelations(this, relManyData, relOneData, seriesHydrationfields, fullDataMode, data);
+            await HydrateUtils_1.HydrateUtils.hydrateRelations(this, relManyData, relOneData, seriesHydrationfields, fullDataMode, data);
         }
         // Process regular fields and time series
-        await utils_1.HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
+        await HydrateUtils_1.HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
         if (!this.isPostLoadExecuted() && postLoadExecute) {
             await this.postLoad();
+            this.setPostLoadExecuted();
         }
         return this;
     }
     getModelScalarFields(model) {
-        return utils_1.ModelUtils.getModelScalarFields(model);
+        return ModelUtils_1.ModelUtils.getModelScalarFields(model);
     }
     async getRelationOneMeta(classFields) {
-        return utils_1.RelationUtils.getRelationOneMeta(this, classFields);
+        return RelationUtils_1.RelationUtils.getRelationOneMeta(this, classFields);
     }
     static async getRelationOneMeta(model, classFields) {
-        return utils_1.RelationUtils.getRelationOneMeta(model, classFields);
+        return RelationUtils_1.RelationUtils.getRelationOneMeta(model, classFields);
     }
     async getRelationManyMeta(classFields) {
-        return utils_1.RelationUtils.getRelationManyMeta(this, classFields);
+        return RelationUtils_1.RelationUtils.getRelationManyMeta(this, classFields);
     }
     static async getRelationManyMeta(model, classFields) {
-        return utils_1.RelationUtils.getRelationManyMeta(model, classFields);
+        return RelationUtils_1.RelationUtils.getRelationManyMeta(model, classFields);
     }
     static async paginate(paginateParams, findParams) {
-        return await utils_1.FindUtils.paginate(this, paginateParams, findParams);
+        return await FindUtils_1.FindUtils.paginate(this, paginateParams, findParams);
     }
     async toMongo() {
         const data = {};
-        const timeSeriesIds = utils_1.TimeSeriesUtils.getTimeSeriesModelFields(this);
+        const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(this);
         const timeSeriesHydrationFields = [];
         for (const key in this) {
             if (await this.hasRelation(key)) {
@@ -175,10 +180,10 @@ class RWSModel {
     async save() {
         const data = await this.toMongo();
         let updatedModelData = data;
-        const entryExists = await utils_1.ModelUtils.entryExists(this);
+        const entryExists = await ModelUtils_1.ModelUtils.entryExists(this);
         if (entryExists) {
             await this.preUpdate();
-            const pk = utils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
+            const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
             updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
             await this._asyncFill(updatedModelData);
             await this.postUpdate();
@@ -193,13 +198,12 @@ class RWSModel {
         return this;
     }
     static async getModelAnnotations(constructor) {
-        return utils_1.ModelUtils.getModelAnnotations(constructor);
+        return ModelUtils_1.ModelUtils.getModelAnnotations(constructor);
     }
     async preUpdate() {
         return;
     }
     async postLoad() {
-        this.setPostLoadExecuted();
         return;
     }
     async postUpdate() {
@@ -212,19 +216,19 @@ class RWSModel {
         return;
     }
     static isSubclass(constructor, baseClass) {
-        return utils_1.ModelUtils.isSubclass(constructor, baseClass);
+        return ModelUtils_1.ModelUtils.isSubclass(constructor, baseClass);
     }
     hasTimeSeries() {
-        return utils_1.TimeSeriesUtils.checkTimeSeries(this.constructor);
+        return TimeSeriesUtils_1.TimeSeriesUtils.checkTimeSeries(this.constructor);
     }
     static checkTimeSeries(constructor) {
-        return utils_1.TimeSeriesUtils.checkTimeSeries(constructor);
+        return TimeSeriesUtils_1.TimeSeriesUtils.checkTimeSeries(constructor);
     }
     async isDbVariable(variable) {
-        return utils_1.ModelUtils.checkDbVariable(this.constructor, variable);
+        return ModelUtils_1.ModelUtils.checkDbVariable(this.constructor, variable);
     }
     static async checkDbVariable(constructor, variable) {
-        return utils_1.ModelUtils.checkDbVariable(constructor, variable);
+        return ModelUtils_1.ModelUtils.checkDbVariable(constructor, variable);
     }
     sanitizeDBData(data) {
         const dataKeys = Object.keys(data);
@@ -242,13 +246,13 @@ class RWSModel {
         return await this.services.dbService.watchCollection(collection, preRun);
     }
     static async findOneBy(findParams) {
-        return await utils_1.FindUtils.findOneBy(this, findParams);
+        return await FindUtils_1.FindUtils.findOneBy(this, findParams);
     }
     static async find(id, findParams = null) {
-        return await utils_1.FindUtils.find(this, id, findParams);
+        return await FindUtils_1.FindUtils.find(this, id, findParams);
     }
     static async findBy(findParams) {
-        return await utils_1.FindUtils.findBy(this, findParams);
+        return await FindUtils_1.FindUtils.findBy(this, findParams);
     }
     static async delete(conditions) {
         const collection = Reflect.get(this, '_collection');
@@ -275,7 +279,7 @@ class RWSModel {
         return RWSModel.loadModels();
     }
     checkRelDisabled(key) {
-        return utils_1.RelationUtils.checkRelDisabled(this, key);
+        return RelationUtils_1.RelationUtils.checkRelDisabled(this, key);
     }
     static setServices(services) {
         this.allModels = services.configService.get('db_models');
@@ -290,8 +294,8 @@ class RWSModel {
     static getDb() {
         return this.services.dbService;
     }
-    async reload(inPostLoad = false) {
-        const pk = utils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
+    async reload() {
+        const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
         const where = {};
         if (Array.isArray(pk)) {
             for (const pkElem of pk) {
@@ -301,7 +305,7 @@ class RWSModel {
         else {
             where[pk] = this[pk];
         }
-        return await utils_1.FindUtils.findOneBy(this.constructor, { conditions: where, cancelPostLoad: inPostLoad });
+        return await FindUtils_1.FindUtils.findOneBy(this.constructor, { conditions: where });
     }
 }
 exports.RWSModel = RWSModel;

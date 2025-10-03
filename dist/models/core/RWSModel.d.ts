@@ -73,6 +73,6 @@ declare class RWSModel<T> implements IModel {
         [k: string]: any;
     }): Promise<number>;
     static getDb(): DBService;
-    reload(inPostLoad?: boolean): Promise<RWSModel<T> | null>;
+    reload(): Promise<RWSModel<T> | null>;
 }
 export { RWSModel };
