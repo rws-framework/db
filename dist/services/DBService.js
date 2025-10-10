@@ -135,7 +135,7 @@ class DBService {
             });
         }
         if (ordering) {
-            params.orderBy = ordering;
+            params.orderBy = this.convertOrderingToPrismaFormat(ordering);
         }
         const retData = await this.getCollectionHandler(collection).findFirst(params);
         return retData;
@@ -153,7 +153,7 @@ class DBService {
             });
         }
         if (ordering) {
-            params.orderBy = ordering;
+            params.orderBy = this.convertOrderingToPrismaFormat(ordering);
         }
         if (pagination) {
             const perPage = pagination.per_page || 50;
@@ -201,6 +201,17 @@ class DBService {
             this.connectToDB();
         }
         return this.client[collection];
+    }
+    convertOrderingToPrismaFormat(ordering) {
+        if (!ordering) {
+            return null;
+        }
+        // If it's already an array, return as is (but handle null values for booleans)
+        if (Array.isArray(ordering)) {
+            return ordering;
+        }
+        // If it's a single object, convert to array format
+        return [ordering];
     }
     setOpts(opts = null) {
         this.opts = opts;

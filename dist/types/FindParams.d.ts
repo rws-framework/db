@@ -1,8 +1,12 @@
+export type SortDirection = 'asc' | 'desc';
+export type OrderByField = {
+    [fieldName: string]: SortDirection;
+};
+export type OrderByArray = OrderByField[];
+export type OrderByType = OrderByField | OrderByArray;
 export type FindByType = {
     conditions?: any;
-    ordering?: {
-        [fieldName: string]: string;
-    };
+    ordering?: OrderByType;
     fields?: string[];
     allowRelations?: boolean;
     fullData?: boolean;

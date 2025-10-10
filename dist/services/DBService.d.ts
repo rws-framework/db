@@ -3,7 +3,7 @@ import { Collection, Db, MongoClient } from 'mongodb';
 import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
-import { IPaginationParams } from '../types/FindParams';
+import { IPaginationParams, OrderByType } from '../types/FindParams';
 import { OpModelType } from '../models/interfaces/OpModelType';
 interface IDBClientCreate {
     dbUrl?: string;
@@ -24,16 +24,13 @@ declare class DBService {
     watchCollection(collectionName: string, preRun: () => void): Promise<any>;
     insert(data: any, collection: string, isTimeSeries?: boolean): Promise<any>;
     update(data: any, collection: string, pk: string | string[]): Promise<IModel>;
-    findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: {
-        [fieldName: string]: string;
-    }): Promise<IModel | null>;
+    findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType): Promise<IModel | null>;
     delete(collection: string, conditions: any): Promise<void>;
-    findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: {
-        [fieldName: string]: string;
-    }, pagination?: IPaginationParams): Promise<IModel[]>;
+    findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, pagination?: IPaginationParams): Promise<IModel[]>;
     collectionExists(collection_name: string): Promise<boolean>;
     createTimeSeriesCollection(collection_name: string): Promise<Collection<ITimeSeries>>;
     private getCollectionHandler;
+    private convertOrderingToPrismaFormat;
     private setOpts;
     count<T = any>(opModel: OpModelType<T>, where?: {
         [k: string]: any;

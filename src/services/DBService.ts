@@ -4,7 +4,7 @@ import {ITimeSeries} from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import chalk from 'chalk';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
-import { IPaginationParams } from '../types/FindParams';
+import { IPaginationParams, OrderByType, OrderByField, OrderByArray } from '../types/FindParams';
 import { OpModelType } from '../models/interfaces/OpModelType';
 
 interface IDBClientCreate {
@@ -172,7 +172,7 @@ class DBService {
     }
   
 
-    async findOneBy(collection: string, conditions: any, fields: string[] | null = null, ordering: { [fieldName: string]: string } = null): Promise<IModel|null>
+    async findOneBy(collection: string, conditions: any, fields: string[] | null = null, ordering: OrderByType = null): Promise<IModel|null>
     {    
         const params: any = { where: conditions };
 
@@ -184,7 +184,7 @@ class DBService {
         }
 
         if(ordering){
-            params.orderBy = ordering;
+            params.orderBy = this.convertOrderingToPrismaFormat(ordering);
         }
 
         const retData = await this.getCollectionHandler(collection).findFirst(params);
@@ -202,7 +202,7 @@ class DBService {
         collection: string, 
         conditions: any, 
         fields: string[] | null = null, 
-        ordering: { [fieldName: string]: string } = null, 
+        ordering: OrderByType = null, 
         pagination: IPaginationParams = null): Promise<IModel[]>
     {    
         const params: any ={ where: conditions };
@@ -215,8 +215,8 @@ class DBService {
         }
 
         if(ordering){
-            params.orderBy = ordering;
-        }
+            params.orderBy = this.convertOrderingToPrismaFormat(ordering);
+        }    
 
         if(pagination){
             const perPage = pagination.per_page || 50;
@@ -281,6 +281,20 @@ class DBService {
         }
 
         return (this.client[collection as keyof PrismaClient] as any);
+    }
+
+    private convertOrderingToPrismaFormat(ordering: OrderByType): any {
+        if (!ordering) {
+            return null;
+        }
+
+        // If it's already an array, return as is (but handle null values for booleans)
+        if (Array.isArray(ordering)) {
+            return ordering;
+        }
+
+        // If it's a single object, convert to array format
+        return [ordering];
     }
 
     private setOpts(opts: IDBClientCreate = null): this

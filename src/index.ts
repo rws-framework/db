@@ -14,7 +14,7 @@ import {
 import { DbHelper } from './helper/DbHelper';
 import { FieldsHelper } from './helper/FieldsHelper';
 
-import type  { FindByType } from './types/FindParams';
+import type  { FindByType, OrderByType, OrderByField, OrderByArray, SortDirection } from './types/FindParams';
 import type  { ITimeSeries } from './types/ITimeSeries';
 import type { IDbConfigHandler, IDbConfigParams } from './types/DbConfigHandler';
 import type { IRWSModel } from './types/IRWSModel';
@@ -29,6 +29,10 @@ export type {
    IDbConfigHandler,
    IDbConfigParams,
    ITimeSeries,
+   OrderByType,
+   OrderByField, 
+   OrderByArray,
+   SortDirection
 }
 
 export {       
@@ -37,7 +41,7 @@ export {
    
    DBService,
 
-   FindByType, 
+   FindByType,
    // TimeSeriesModel,   
 
    InverseRelation, Relation, TrackType, InverseTimeSeries, IdType,

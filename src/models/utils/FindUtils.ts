@@ -5,7 +5,7 @@ import { TimeSeriesUtils } from "./TimeSeriesUtils";
 import { RelationUtils } from "./RelationUtils";
 import { OpModelType } from "..";
 import { ModelUtils } from "./ModelUtils";
-import { FindByType, IPaginationParams } from "../../types/FindParams";
+import { FindByType, IPaginationParams, OrderByType } from "../../types/FindParams";
 
 export class FindUtils {
     public static async findOneBy<T extends RWSModel<T>>(
