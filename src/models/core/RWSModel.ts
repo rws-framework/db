@@ -179,19 +179,40 @@ class RWSModel<T> implements IModel {
         const data: any = {};
         const timeSeriesIds = TimeSeriesUtils.getTimeSeriesModelFields(this);
         const timeSeriesHydrationFields: string[] = [];
+        
+        // Get relation metadata to determine how to handle each relation
+        const classFields = FieldsHelper.getAllClassFields(this.constructor);
+        const relOneData = await this.getRelationOneMeta(classFields);
       
         for (const key in (this as any)) { 
-            if (await this.hasRelation(key)) {                
-                if (this[key] === null) {
-                    // For null relations, use disconnect or set to null
-                    data[key] = {
-                        disconnect: true
-                    };
-                } else {
-                    data[key] = this.bindRelation(key, this[key]);  
+            if (await this.hasRelation(key)) {
+                const relationMeta = relOneData[key];
+                
+                if (relationMeta) {
+                    // Use connect on relations that are either:
+                    // 1. Required (required: true)
+                    // 2. Have explicitly set cascade options (metaOpts.cascade)
+                    const hasExplicitCascade = relationMeta.cascade && Object.keys(relationMeta.cascade).length > 0;
+                    const shouldUseConnect = relationMeta.required || hasExplicitCascade;
+                    
+                    if (shouldUseConnect) {
+                        // Relations with required=true or explicit cascade → use connect
+                        if (this[key] === null) {
+                            data[key] = { disconnect: true };
+                        } else if (this[key] && this[key].id) {
+                            data[key] = { connect: { id: this[key].id } };                            
+                        }
+                    } else {
+                        // Simple optional relations → use foreign key field directly
+                        const foreignKeyField = relationMeta.hydrationField;
+                        if (this[key] === null) {
+                            data[foreignKeyField] = null;
+                        } else if (this[key] && this[key].id) {
+                            data[foreignKeyField] = this[key].id;
+                        }
+                    }
                 }
                 
-                // Don't try to set the foreign key directly anymore
                 continue;
             }
     

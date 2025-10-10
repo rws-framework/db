@@ -12,6 +12,10 @@ export type RelOneMetaType<T extends IRWSModel> = {
         model: OpModelType<T>;
         hydrationField: string;
         foreignKey: string;
+        cascade?: {
+            onDelete?: string;
+            onUpdate?: string;
+        };
     };
 };
 export type RelManyMetaType<T extends IRWSModel> = {

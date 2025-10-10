@@ -19,7 +19,8 @@ class RelationUtils {
                         required: resolvedMetadata.required,
                         model: resolvedMetadata.relatedTo,
                         hydrationField: resolvedMetadata.relationField,
-                        foreignKey: resolvedMetadata.relatedToField
+                        foreignKey: resolvedMetadata.relatedToField,
+                        cascade: resolvedMetadata.cascade
                     };
                 }
             }
