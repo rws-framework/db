@@ -11,6 +11,7 @@ const _model_1 = require("../../models/_model");
 const utils_1 = require("./utils");
 const type_converter_1 = require("./type-converter");
 const relation_manager_1 = require("./relation-manager");
+const child_process_1 = require("child_process");
 const _EXECUTE_PRISMA_CMD = true;
 const _REMOVE_SCHEMA_FILE = true;
 /**
@@ -339,8 +340,23 @@ datasource db {
      */
     static async pushDBModels(configService, dbService, leaveFile = false) {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
+        console.log({ env: process.env.PRISMA_DB_URL });
         const [_, schemaPath] = utils_1.DbUtils.getProcessedSchemaDir();
-        await console_1.rwsShell.runCommand(`${utils_1.DbUtils.detectInstaller()} prisma db push --schema=${schemaPath}`, process.cwd());
+        const prismaPath = require.resolve('prisma/build/index.js');
+        // Set environment variables
+        const env = {
+            ...process.env,
+            [this.dbUrlVarName]: configService.get('db_url')
+        };
+        // Execute prisma db push programmatically
+        (0, child_process_1.execSync)(`node ${prismaPath} db push --schema=${schemaPath} --force-reset`, {
+            cwd: process.cwd(),
+            stdio: 'inherit',
+            env
+        });
+        // await rwsShell.runCommand(`${DbUtils.detectInstaller()} prisma db push --schema=${schemaPath}`, process.cwd(), false, { env: {
+        //     PRISMA_DB_URL: configService.get('db_url')
+        // }});
     }
 }
 exports.SchemaGenerator = SchemaGenerator;
