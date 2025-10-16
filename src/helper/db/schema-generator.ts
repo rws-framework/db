@@ -445,8 +445,6 @@ datasource db {
     static async pushDBModels(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void> {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
 
-        console.log({ env: process.env.PRISMA_DB_URL });
-
         const [_, schemaPath] = DbUtils.getProcessedSchemaDir();
 
          const prismaPath = require.resolve('prisma/build/index.js');
