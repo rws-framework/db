@@ -475,7 +475,7 @@ datasource db {
         };
 
         // Execute prisma db push programmatically
-        execSync(`node ${prismaPath} db push --schema=${schemaPath} --force-reset`, {
+        execSync(`node ${prismaPath} db push --schema=${schemaPath}`, {
             cwd: process.cwd(),
             stdio: 'inherit',
             env

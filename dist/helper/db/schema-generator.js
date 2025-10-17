@@ -365,7 +365,7 @@ datasource db {
             [this.dbUrlVarName]: configService.get('db_url')
         };
         // Execute prisma db push programmatically
-        (0, child_process_1.execSync)(`node ${prismaPath} db push --schema=${schemaPath} --force-reset`, {
+        (0, child_process_1.execSync)(`node ${prismaPath} db push --schema=${schemaPath}`, {
             cwd: process.cwd(),
             stdio: 'inherit',
             env
