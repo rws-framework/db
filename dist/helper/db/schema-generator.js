@@ -7,6 +7,7 @@ exports.SchemaGenerator = void 0;
 const console_1 = require("@rws-framework/console");
 const chalk_1 = __importDefault(require("chalk"));
 const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const _model_1 = require("../../models/_model");
 const utils_1 = require("./utils");
 const type_converter_1 = require("./type-converter");
@@ -274,6 +275,9 @@ datasource db {
         }
         return superFieldElemName;
     }
+    static getPrismaExec() {
+        return path_1.default.join(console_1.rwsPath.findRootWorkspacePath(), 'node_modules', 'prisma/build/index.js');
+    }
     /**
      * Install Prisma with the generated schema
      * @param configService The configuration service
@@ -324,8 +328,20 @@ datasource db {
                 fs_1.default.unlinkSync(schemaPath);
             }
             fs_1.default.writeFileSync(schemaPath, template);
-            if (_EXECUTE_PRISMA_CMD)
-                await console_1.rwsShell.runCommand(`${utils_1.DbUtils.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
+            if (_EXECUTE_PRISMA_CMD) {
+                const prismaPath = this.getPrismaExec();
+                // Set environment variables
+                const env = {
+                    ...process.env,
+                    [this.dbUrlVarName]: configService.get('db_url')
+                };
+                // Execute prisma db push programmatically
+                (0, child_process_1.execSync)(`node ${prismaPath} generate --schema=${schemaPath}`, {
+                    cwd: process.cwd(),
+                    stdio: 'inherit',
+                    env
+                });
+            }
             console.log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
             if (_REMOVE_SCHEMA_FILE) {
                 fs_1.default.unlinkSync(schemaPath);
@@ -340,9 +356,9 @@ datasource db {
      */
     static async pushDBModels(configService, dbService, leaveFile = false) {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
-        console.log({ env: process.env.PRISMA_DB_URL });
         const [_, schemaPath] = utils_1.DbUtils.getProcessedSchemaDir();
-        const prismaPath = require.resolve('prisma/build/index.js');
+        const prismaPath = this.getPrismaExec();
+        console.log({ prismaPath });
         // Set environment variables
         const env = {
             ...process.env,

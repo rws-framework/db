@@ -1,4 +1,4 @@
-import { rwsShell } from '@rws-framework/console';
+import { rwsPath, rwsShell } from '@rws-framework/console';
 import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
@@ -355,6 +355,10 @@ datasource db {
         return superFieldElemName;
     }
 
+    private static getPrismaExec(): string {
+        return path.join(rwsPath.findRootWorkspacePath(), 'node_modules', 'prisma/build/index.js');
+    }
+
     /**
      * Install Prisma with the generated schema
      * @param configService The configuration service
@@ -424,9 +428,22 @@ datasource db {
 
             fs.writeFileSync(schemaPath, template);
 
-            if(_EXECUTE_PRISMA_CMD)
-            await rwsShell.runCommand(`${DbUtils.detectInstaller()} prisma generate --schema=${schemaPath}`, process.cwd());
+            if(_EXECUTE_PRISMA_CMD){
+                const prismaPath = this.getPrismaExec();
+                    
+                // Set environment variables
+                const env = {
+                    ...process.env,            
+                    [this.dbUrlVarName]: configService.get('db_url')
+                };
 
+                // Execute prisma db push programmatically
+                execSync(`node ${prismaPath} generate --schema=${schemaPath}`, {
+                    cwd: process.cwd(),
+                    stdio: 'inherit',
+                    env
+                });
+            }            
             
             console.log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
@@ -447,7 +464,9 @@ datasource db {
 
         const [_, schemaPath] = DbUtils.getProcessedSchemaDir();
 
-         const prismaPath = require.resolve('prisma/build/index.js');
+        const prismaPath = this.getPrismaExec();
+
+        console.log({prismaPath});
                     
         // Set environment variables
         const env = {
