@@ -464,9 +464,7 @@ datasource db {
 
         const [_, schemaPath] = DbUtils.getProcessedSchemaDir();
 
-        const prismaPath = this.getPrismaExec();
-
-        console.log({prismaPath});
+        const prismaPath = this.getPrismaExec();        
                     
         // Set environment variables
         const env = {

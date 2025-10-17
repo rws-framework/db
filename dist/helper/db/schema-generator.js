@@ -358,7 +358,6 @@ datasource db {
         process.env = { ...process.env, [this.dbUrlVarName]: configService.get('db_url') };
         const [_, schemaPath] = utils_1.DbUtils.getProcessedSchemaDir();
         const prismaPath = this.getPrismaExec();
-        console.log({ prismaPath });
         // Set environment variables
         const env = {
             ...process.env,
