@@ -10,13 +10,29 @@ import chalk from 'chalk';
 export class HydrateUtils {
     static async hydrateDataFields(model: RWSModel<any>, collections_to_models: { [key: string]: any }, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: { [key: string]: any }) {
         const timeSeriesIds = TimeSeriesUtils.getTimeSeriesModelFields(model);
+        
+        // Build a set of foreign key field names to skip
+        const foreignKeyFields = new Set<string>();
+        for (const relationName in relOneData) {
+            const relationMeta = relOneData[relationName];
+            if (relationMeta.hydrationField) {
+                foreignKeyFields.add(relationMeta.hydrationField);
+            }
+        }
+        
         for (const key in data) {
             if (data.hasOwnProperty(key)) {
                 if (!fullDataMode && ((model).constructor as OpModelType<any>)._CUT_KEYS.includes(key)) {
                     continue;
                 }
 
+                // Skip relation property names
                 if (Object.keys(relOneData).includes(key)) {
+                    continue;
+                }
+
+                // Skip foreign key field names
+                if (foreignKeyFields.has(key)) {
                     continue;
                 }
 

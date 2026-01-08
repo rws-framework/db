@@ -172,7 +172,7 @@ class DBService {
     }
   
 
-    async findOneBy(collection: string, conditions: any, fields: string[] | null = null, ordering: OrderByType = null): Promise<IModel|null>
+    async findOneBy(collection: string, conditions: any, fields: string[] | null = null, ordering: OrderByType = null, prismaOptions: any = null): Promise<IModel|null>
     {    
         const params: any = { where: conditions };
 
@@ -181,6 +181,18 @@ class DBService {
             fields.forEach((fieldName: string) => {        
                 params.select[fieldName] = true;
             });    
+            
+            // Add relation fields to select instead of using include when fields are specified
+            if(prismaOptions?.include) {
+                Object.keys(prismaOptions.include).forEach(relationField => {
+                    if (fields.includes(relationField)) {
+                        params.select[relationField] = true;
+                    }
+                });
+            }
+        } else if(prismaOptions?.include) {
+            // Only use include when no fields are specified
+            params.include = prismaOptions.include;
         }
 
         if(ordering){
@@ -203,7 +215,8 @@ class DBService {
         conditions: any, 
         fields: string[] | null = null, 
         ordering: OrderByType = null, 
-        pagination: IPaginationParams = null): Promise<IModel[]>
+        pagination: IPaginationParams = null,
+        prismaOptions: any = null): Promise<IModel[]>
     {    
         const params: any ={ where: conditions };
 
@@ -212,6 +225,18 @@ class DBService {
             fields.forEach((fieldName: string) => {        
                 params.select[fieldName] = true;
             });    
+            
+            // Add relation fields to select instead of using include when fields are specified
+            if(prismaOptions?.include) {
+                Object.keys(prismaOptions.include).forEach(relationField => {
+                    if (fields.includes(relationField)) {
+                        params.select[relationField] = true;
+                    }
+                });
+            }
+        } else if(prismaOptions?.include) {
+            // Only use include when no fields are specified
+            params.include = prismaOptions.include;
         }
 
         if(ordering){
@@ -303,7 +328,7 @@ class DBService {
         return this;
     }
 
-    public async count<T = any>(opModel: OpModelType<T>, where: {[k: string]: any} = {}): Promise<number>{
+    public async count<T = any>(opModel: OpModelType<T>, where: {[k: string]: any} = {}): Promise<number>{        
         return await this.getCollectionHandler(opModel._collection).count({where});
     }
 

@@ -107,10 +107,26 @@ class RWSModel {
             collections_to_models[model.getCollection()] = model;
         });
         const seriesHydrationfields = [];
-        if (allowRelations) {
+        // Check if relations are already populated from Prisma includes
+        const relationsAlreadyPopulated = this.checkRelationsPrePopulated(data, relOneData, relManyData);
+        if (allowRelations && !relationsAlreadyPopulated) {
+            // Use traditional relation hydration if not pre-populated
             await HydrateUtils_1.HydrateUtils.hydrateRelations(this, relManyData, relOneData, seriesHydrationfields, fullDataMode, data);
         }
-        // Process regular fields and time series
+        else if (allowRelations && relationsAlreadyPopulated) {
+            // Relations are already populated from Prisma, just assign them directly
+            await this.hydratePrePopulatedRelations(data, relOneData, relManyData);
+            // Create a copy of data without relation fields to prevent overwriting hydrated relations
+            const dataWithoutRelations = { ...data };
+            for (const key in relOneData) {
+                delete dataWithoutRelations[key];
+            }
+            for (const key in relManyData) {
+                delete dataWithoutRelations[key];
+            }
+            data = dataWithoutRelations;
+        }
+        // Process regular fields and time series (excluding relations when pre-populated)
         await HydrateUtils_1.HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
         if (!this.isPostLoadExecuted() && postLoadExecute) {
             await this.postLoad();
@@ -311,6 +327,139 @@ class RWSModel {
     static async count(where = {}) {
         return await this.services.dbService.count(this, where);
     }
+    /**
+     * Build Prisma include object for relation preloading
+     */
+    static async buildPrismaIncludes(fields) {
+        const tempInstance = new this();
+        const classFields = FieldsHelper_1.FieldsHelper.getAllClassFields(this);
+        const [relOneData, relManyData] = await Promise.all([
+            this.getRelationOneMeta(tempInstance, classFields),
+            this.getRelationManyMeta(tempInstance, classFields)
+        ]);
+        // Get relations configuration from @RWSCollection decorator
+        const allowedRelations = this._RELATIONS || {};
+        const hasRelationsConfig = Object.keys(allowedRelations).length > 0;
+        const includes = {};
+        // Helper function to determine if a relation should be included
+        const shouldIncludeRelation = (relationName) => {
+            // If relations config exists, only include relations that are explicitly enabled
+            if (hasRelationsConfig) {
+                if (!allowedRelations[relationName]) {
+                    return false;
+                }
+            }
+            // If fields are specified, only include if relation is in fields array
+            if (fields && fields.length > 0) {
+                return fields.includes(relationName);
+            }
+            // If no fields specified but relations config exists, include enabled relations
+            if (hasRelationsConfig) {
+                return allowedRelations[relationName] === true;
+            }
+            // If no relations config and no fields specified, include all relations
+            return true;
+        };
+        // Add one-to-one and many-to-one relations
+        for (const key in relOneData) {
+            if (shouldIncludeRelation(key)) {
+                includes[key] = true;
+            }
+        }
+        // Add one-to-many relations
+        for (const key in relManyData) {
+            if (shouldIncludeRelation(key)) {
+                includes[key] = true;
+            }
+        }
+        return Object.keys(includes).length > 0 ? includes : null;
+    }
+    /**
+     * Check if relations are already populated from Prisma includes
+     */
+    checkRelationsPrePopulated(data, relOneData, relManyData) {
+        // Check if any relation key in data contains object data instead of just ID
+        for (const key in relOneData) {
+            if (data[key] && typeof data[key] === 'object' && data[key] !== null) {
+                // For one-to-one relations, check if it has an id or if it's a full object
+                if (data[key].id || Object.keys(data[key]).length > 1) {
+                    return true;
+                }
+            }
+        }
+        for (const key in relManyData) {
+            const relationValue = data[key];
+            const relMeta = relManyData[key];
+            if (relMeta.singular) {
+                // Singular inverse relation - should be a single object
+                if (relationValue && typeof relationValue === 'object' && relationValue !== null &&
+                    (relationValue.id || Object.keys(relationValue).length > 1)) {
+                    return true;
+                }
+            }
+            else if (relationValue && Array.isArray(relationValue) && relationValue.length > 0) {
+                // Regular one-to-many relations - should be arrays
+                if (typeof relationValue[0] === 'object' && relationValue[0] !== null) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    /**
+     * Hydrate pre-populated relations from Prisma includes (one level only)
+     */
+    async hydratePrePopulatedRelations(data, relOneData, relManyData) {
+        // Handle one-to-one and many-to-one relations
+        for (const key in relOneData) {
+            if (data[key] && typeof data[key] === 'object' && data[key] !== null) {
+                const relationData = data[key];
+                const relMeta = relOneData[key];
+                const ModelClass = relMeta.model; // Use the model class directly from metadata
+                if (ModelClass) {
+                    // Check if it's already a full object with data or just an ID reference
+                    if (relationData.id || Object.keys(relationData).length > 1) {
+                        // Create new instance and hydrate ONLY basic fields, NO RELATIONS
+                        const relatedInstance = new ModelClass();
+                        await relatedInstance._asyncFill(relationData, false, false, true);
+                        this[key] = relatedInstance;
+                    }
+                }
+            }
+        }
+        // Handle one-to-many relations
+        for (const key in relManyData) {
+            if (data[key]) {
+                const relationData = data[key];
+                const relMeta = relManyData[key];
+                const ModelClass = relMeta.inversionModel; // Use the model class directly from metadata
+                if (ModelClass) {
+                    // Check if this is a singular inverse relation
+                    if (relMeta.singular && !Array.isArray(relationData)) {
+                        // Handle singular inverse relation as a single object
+                        if (typeof relationData === 'object' && relationData !== null &&
+                            (relationData.id || Object.keys(relationData).length > 1)) {
+                            const relatedInstance = new ModelClass();
+                            await relatedInstance._asyncFill(relationData, false, false, true);
+                            this[key] = relatedInstance;
+                        }
+                    }
+                    else if (Array.isArray(relationData) && relationData.length > 0) {
+                        // Handle regular one-to-many relations as arrays
+                        const relatedInstances = [];
+                        for (const itemData of relationData) {
+                            if (typeof itemData === 'object' && itemData !== null) {
+                                const relatedInstance = new ModelClass();
+                                await relatedInstance._asyncFill(itemData, false, false, true);
+                                relatedInstances.push(relatedInstance);
+                            }
+                        }
+                        this[key] = relatedInstances;
+                    }
+                }
+            }
+        }
+    }
     static getDb() {
         return this.services.dbService;
     }
@@ -325,7 +474,16 @@ class RWSModel {
         else {
             where[pk] = this[pk];
         }
-        return await FindUtils_1.FindUtils.findOneBy(this.constructor, { conditions: where });
+        // Find the fresh data from database
+        const freshData = await FindUtils_1.FindUtils.findOneBy(this.constructor, { conditions: where });
+        if (!freshData) {
+            return null;
+        }
+        // Convert the fresh instance back to plain data for hydration
+        const plainData = await freshData.toMongo();
+        // Hydrate current instance with fresh data including relations
+        await this._asyncFill(plainData, true, true, true);
+        return this;
     }
 }
 exports.RWSModel = RWSModel;

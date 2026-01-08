@@ -11,12 +11,25 @@ const chalk_1 = __importDefault(require("chalk"));
 class HydrateUtils {
     static async hydrateDataFields(model, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data) {
         const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(model);
+        // Build a set of foreign key field names to skip
+        const foreignKeyFields = new Set();
+        for (const relationName in relOneData) {
+            const relationMeta = relOneData[relationName];
+            if (relationMeta.hydrationField) {
+                foreignKeyFields.add(relationMeta.hydrationField);
+            }
+        }
         for (const key in data) {
             if (data.hasOwnProperty(key)) {
                 if (!fullDataMode && (model).constructor._CUT_KEYS.includes(key)) {
                     continue;
                 }
+                // Skip relation property names
                 if (Object.keys(relOneData).includes(key)) {
+                    continue;
+                }
+                // Skip foreign key field names
+                if (foreignKeyFields.has(key)) {
                     continue;
                 }
                 if (seriesHydrationfields.includes(key)) {

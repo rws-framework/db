@@ -24,9 +24,9 @@ declare class DBService {
     watchCollection(collectionName: string, preRun: () => void): Promise<any>;
     insert(data: any, collection: string, isTimeSeries?: boolean): Promise<any>;
     update(data: any, collection: string, pk: string | string[]): Promise<IModel>;
-    findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType): Promise<IModel | null>;
+    findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, prismaOptions?: any): Promise<IModel | null>;
     delete(collection: string, conditions: any): Promise<void>;
-    findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, pagination?: IPaginationParams): Promise<IModel[]>;
+    findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, pagination?: IPaginationParams, prismaOptions?: any): Promise<IModel[]>;
     collectionExists(collection_name: string): Promise<boolean>;
     createTimeSeriesCollection(collection_name: string): Promise<Collection<ITimeSeries>>;
     private getCollectionHandler;

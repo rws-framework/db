@@ -126,13 +126,25 @@ class DBService {
         });
         return await this.findOneBy(collection, where);
     }
-    async findOneBy(collection, conditions, fields = null, ordering = null) {
+    async findOneBy(collection, conditions, fields = null, ordering = null, prismaOptions = null) {
         const params = { where: conditions };
         if (fields) {
             params.select = {};
             fields.forEach((fieldName) => {
                 params.select[fieldName] = true;
             });
+            // Add relation fields to select instead of using include when fields are specified
+            if (prismaOptions?.include) {
+                Object.keys(prismaOptions.include).forEach(relationField => {
+                    if (fields.includes(relationField)) {
+                        params.select[relationField] = true;
+                    }
+                });
+            }
+        }
+        else if (prismaOptions?.include) {
+            // Only use include when no fields are specified
+            params.include = prismaOptions.include;
         }
         if (ordering) {
             params.orderBy = this.convertOrderingToPrismaFormat(ordering);
@@ -144,13 +156,25 @@ class DBService {
         await this.getCollectionHandler(collection).deleteMany({ where: conditions });
         return;
     }
-    async findBy(collection, conditions, fields = null, ordering = null, pagination = null) {
+    async findBy(collection, conditions, fields = null, ordering = null, pagination = null, prismaOptions = null) {
         const params = { where: conditions };
         if (fields) {
             params.select = {};
             fields.forEach((fieldName) => {
                 params.select[fieldName] = true;
             });
+            // Add relation fields to select instead of using include when fields are specified
+            if (prismaOptions?.include) {
+                Object.keys(prismaOptions.include).forEach(relationField => {
+                    if (fields.includes(relationField)) {
+                        params.select[relationField] = true;
+                    }
+                });
+            }
+        }
+        else if (prismaOptions?.include) {
+            // Only use include when no fields are specified
+            params.include = prismaOptions.include;
         }
         if (ordering) {
             params.orderBy = this.convertOrderingToPrismaFormat(ordering);

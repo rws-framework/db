@@ -72,6 +72,18 @@ declare class RWSModel<T> implements IModel {
     static count(where?: {
         [k: string]: any;
     }): Promise<number>;
+    /**
+     * Build Prisma include object for relation preloading
+     */
+    static buildPrismaIncludes<T extends RWSModel<T>>(this: OpModelType<T>, fields?: string[]): Promise<any>;
+    /**
+     * Check if relations are already populated from Prisma includes
+     */
+    private checkRelationsPrePopulated;
+    /**
+     * Hydrate pre-populated relations from Prisma includes (one level only)
+     */
+    private hydratePrePopulatedRelations;
     static getDb(): DBService;
     reload(): Promise<RWSModel<T> | null>;
 }

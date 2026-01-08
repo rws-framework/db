@@ -10,7 +10,11 @@ class FindUtils {
         const fullData = findParams?.fullData ?? false;
         opModel.checkForInclusionWithThrow('');
         const collection = Reflect.get(opModel, '_collection');
-        const dbData = await opModel.services.dbService.findOneBy(collection, conditions, fields, ordering);
+        // Build Prisma includes for relation preloading if relations are allowed
+        const prismaOptions = allowRelations ? {
+            include: await opModel.buildPrismaIncludes(fields)
+        } : null;
+        const dbData = await opModel.services.dbService.findOneBy(collection, conditions, fields, ordering, prismaOptions);
         if (dbData) {
             const inst = new opModel();
             const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams?.cancelPostLoad ? false : true);
@@ -25,7 +29,11 @@ class FindUtils {
         const fullData = findParams?.fullData ?? false;
         const collection = Reflect.get(opModel, '_collection');
         opModel.checkForInclusionWithThrow(opModel.name);
-        const dbData = await opModel.services.dbService.findOneBy(collection, { id }, fields, ordering);
+        // Build Prisma includes for relation preloading if relations are allowed
+        const prismaOptions = allowRelations ? {
+            include: await opModel.buildPrismaIncludes(fields)
+        } : null;
+        const dbData = await opModel.services.dbService.findOneBy(collection, { id }, fields, ordering, prismaOptions);
         if (dbData) {
             const inst = new opModel();
             const loaded = await inst._asyncFill(dbData, fullData, allowRelations, findParams?.cancelPostLoad ? false : true);
@@ -43,7 +51,11 @@ class FindUtils {
         opModel.checkForInclusionWithThrow(opModel.name);
         try {
             const paginateParams = findParams?.pagination ? findParams?.pagination : undefined;
-            const dbData = await opModel.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);
+            // Build Prisma includes for relation preloading if relations are allowed
+            const prismaOptions = allowRelations ? {
+                include: await opModel.buildPrismaIncludes(fields)
+            } : null;
+            const dbData = await opModel.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams, prismaOptions);
             if (dbData.length) {
                 const instanced = [];
                 for (const data of dbData) {
@@ -68,7 +80,11 @@ class FindUtils {
         const collection = Reflect.get(opModel, '_collection');
         opModel.checkForInclusionWithThrow(opModel.name);
         try {
-            const dbData = await opModel.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams);
+            // Build Prisma includes for relation preloading if relations are allowed
+            const prismaOptions = allowRelations ? {
+                include: await opModel.buildPrismaIncludes(fields)
+            } : null;
+            const dbData = await opModel.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams, prismaOptions);
             if (dbData.length) {
                 const instanced = [];
                 for (const data of dbData) {

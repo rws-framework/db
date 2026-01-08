@@ -63,6 +63,10 @@ export interface OpModelType<T> {
         preRun: () => void
     ): Promise<any>;
     count(where?: { [k: string]: any }): Promise<number>;
+    buildPrismaIncludes<T extends RWSModel<T>>(
+        this: OpModelType<T>,
+        fields?: string[]
+    ): Promise<any>;
     isSubclass<T extends RWSModel<T>, C extends new () => T>(
         constructor: C,
         baseClass: new () => T
