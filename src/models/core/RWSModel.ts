@@ -27,6 +27,9 @@ class RWSModel<T> implements IModel {
     static _BANNED_KEYS = ['_collection'];
     static allModels: OpModelType<any>[] = [];
     static _CUT_KEYS: string[] = [];
+    
+    // Store relation foreign key fields for reload() functionality
+    private _relationFields: Record<string, any> = {};
 
     private postLoadExecuted: boolean = false;
 
@@ -566,6 +569,34 @@ class RWSModel<T> implements IModel {
                         if (typeof relationData === 'object' && relationData !== null && 
                             (relationData.id || Object.keys(relationData).length > 1)) {
                             const relatedInstance = new ModelClass();
+                            
+                            // Check relation metadata to identify foreign key fields that need to be preserved
+                            const tempInstance = new ModelClass();
+                            const childClassFields = FieldsHelper.getAllClassFields(tempInstance.constructor);
+                            const [childRelOneData, childRelManyData] = await Promise.all([
+                                RelationUtils.getRelationOneMeta(tempInstance, childClassFields),
+                                RelationUtils.getRelationManyMeta(tempInstance, childClassFields)
+                            ]);
+                            
+                            // Store foreign key fields from relation metadata
+                            for (const relKey in childRelOneData) {
+                                const relMeta = childRelOneData[relKey];
+                                const foreignKeyField = relMeta.hydrationField; // e.g., 'avatar_id', 'knowledge_id'
+                                if (foreignKeyField && relationData[foreignKeyField] !== undefined) {
+                                    relatedInstance._relationFields[foreignKeyField] = relationData[foreignKeyField];
+                                    relatedInstance[foreignKeyField] = relationData[foreignKeyField];
+                                }
+                            }
+                            
+                            for (const relKey in childRelManyData) {
+                                const relMeta = childRelManyData[relKey];
+                                const foreignKeyField = relMeta.foreignKey; // Use foreignKey for inverse relations
+                                if (foreignKeyField && relationData[foreignKeyField] !== undefined) {
+                                    relatedInstance._relationFields[foreignKeyField] = relationData[foreignKeyField];
+                                    relatedInstance[foreignKeyField] = relationData[foreignKeyField];
+                                }
+                            }
+                            
                             await relatedInstance._asyncFill(relationData, false, false, true);
                             this[key] = relatedInstance;
                         }
@@ -575,6 +606,34 @@ class RWSModel<T> implements IModel {
                         for (const itemData of relationData) {
                             if (typeof itemData === 'object' && itemData !== null) {
                                 const relatedInstance = new ModelClass();
+                                
+                                // Check relation metadata to identify foreign key fields that need to be preserved
+                                const tempInstance = new ModelClass();
+                                const childClassFields = FieldsHelper.getAllClassFields(tempInstance.constructor);
+                                const [childRelOneData, childRelManyData] = await Promise.all([
+                                    RelationUtils.getRelationOneMeta(tempInstance, childClassFields),
+                                    RelationUtils.getRelationManyMeta(tempInstance, childClassFields)
+                                ]);
+                                
+                                // Store foreign key fields from relation metadata
+                                for (const relKey in childRelOneData) {
+                                    const relMeta = childRelOneData[relKey];
+                                    const foreignKeyField = relMeta.hydrationField; // e.g., 'avatar_id', 'knowledge_id'
+                                    if (foreignKeyField && itemData[foreignKeyField] !== undefined) {
+                                        relatedInstance._relationFields[foreignKeyField] = itemData[foreignKeyField];
+                                        relatedInstance[foreignKeyField] = itemData[foreignKeyField];
+                                    }
+                                }
+                                
+                                for (const relKey in childRelManyData) {
+                                    const relMeta = childRelManyData[relKey];
+                                    const foreignKeyField = relMeta.foreignKey; // Use foreignKey for inverse relations
+                                    if (foreignKeyField && itemData[foreignKeyField] !== undefined) {
+                                        relatedInstance._relationFields[foreignKeyField] = itemData[foreignKeyField];
+                                        relatedInstance[foreignKeyField] = itemData[foreignKeyField];
+                                    }
+                                }
+                                
                                 await relatedInstance._asyncFill(itemData, false, false, true);
                                 relatedInstances.push(relatedInstance);
                             }
@@ -614,10 +673,25 @@ class RWSModel<T> implements IModel {
         // Convert the fresh instance back to plain data for hydration
         const plainData = await freshData.toMongo();
         
+        // Preserve foreign key fields from _relationFields to ensure relations can be hydrated
+        for (const key in this._relationFields) {
+            if (plainData[key] === undefined) {
+                plainData[key] = this._relationFields[key];
+            }
+        }
+        
         // Hydrate current instance with fresh data including relations
         await this._asyncFill(plainData, true, true, true);
         
         return this;
+    }
+    
+    // Helper method to get property with fallback to stored relation fields
+    getPropertyValue(key: string): any {
+        if (this.hasOwnProperty(key) || this[key] !== undefined) {
+            return this[key];
+        }
+        return this._relationFields[key];
     }
 }
 

@@ -130,7 +130,7 @@ export class FindUtils {
             } : null;
             
             const dbData = await opModel.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams, prismaOptions);
-
+        
             if (dbData.length) {
                 const instanced: T[] = [];
 

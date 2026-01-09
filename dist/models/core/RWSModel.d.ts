@@ -15,6 +15,7 @@ declare class RWSModel<T> implements IModel {
     static _BANNED_KEYS: string[];
     static allModels: OpModelType<any>[];
     static _CUT_KEYS: string[];
+    private _relationFields;
     private postLoadExecuted;
     constructor(data?: any);
     isPostLoadExecuted(): boolean;
@@ -86,5 +87,6 @@ declare class RWSModel<T> implements IModel {
     private hydratePrePopulatedRelations;
     static getDb(): DBService;
     reload(): Promise<RWSModel<T> | null>;
+    getPropertyValue(key: string): any;
 }
 export { RWSModel };
