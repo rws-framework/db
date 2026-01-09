@@ -5,6 +5,7 @@ import { TimeSeriesUtils } from "./TimeSeriesUtils";
 import { RelationUtils } from "./RelationUtils";
 import { OpModelType } from "..";
 import { ModelUtils } from "./ModelUtils";
+import { FieldsHelper } from "../../helper/FieldsHelper";
 import chalk from 'chalk';
 
 export class HydrateUtils {
@@ -20,9 +21,12 @@ export class HydrateUtils {
             }
         }
         
+        // Get ignored keys from model's @RWSCollection decorator
+        const ignoredKeys = ((model).constructor as OpModelType<any>)._CUT_KEYS || [];
+        
         for (const key in data) {
             if (data.hasOwnProperty(key)) {
-                if (!fullDataMode && ((model).constructor as OpModelType<any>)._CUT_KEYS.includes(key)) {
+                if (!fullDataMode && ignoredKeys.includes(key)) {
                     continue;
                 }
 
@@ -62,9 +66,11 @@ export class HydrateUtils {
     }
 
     static async hydrateRelations(model: RWSModel<any>, relManyData: RelManyMetaType<IRWSModel>, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: { [key: string]: any }, postLoadExecute = false) {
+        const ignoredKeys = ((model).constructor as OpModelType<any>)._CUT_KEYS || [];
+        
         // Handle many-to-many relations
         for (const key in relManyData) {
-            if (!fullDataMode && (model as any).constructor._CUT_KEYS.includes(key)) {
+            if (!fullDataMode && ignoredKeys.includes(key)) {
                 continue;
             }
 
@@ -72,16 +78,19 @@ export class HydrateUtils {
 
             const relationEnabled = !RelationUtils.checkRelDisabled(model, relMeta.key);
 
-
-
             if (relationEnabled) {
                 const pk = ModelUtils.findPrimaryKeyFields(model.constructor as OpModelType<any>) as string;
+
+                // Get child model ignored keys to pass to find operations
+                const childIgnoredKeys = (relMeta.inversionModel as OpModelType<any>)._CUT_KEYS || [];
+                const childFields = childIgnoredKeys.length > 0 ? await this.getFieldsExcludingIgnored(relMeta.inversionModel, childIgnoredKeys) : undefined;
 
                 if (relMeta.singular) {
                     model[relMeta.key] = await relMeta.inversionModel.findOneBy({
                         conditions: {
                             [relMeta.foreignKey]: data[pk]
                         },
+                        fields: childFields,
                         allowRelations: false,
                         cancelPostLoad: !postLoadExecute
                     });
@@ -90,6 +99,7 @@ export class HydrateUtils {
                         conditions: {
                             [relMeta.foreignKey]: data[pk]
                         },
+                        fields: childFields,
                         allowRelations: false,
                         cancelPostLoad: !postLoadExecute
                     });
@@ -99,7 +109,7 @@ export class HydrateUtils {
 
         // Handle one-to-one relations
         for (const key in relOneData) {
-            if (!fullDataMode && ((model as any).constructor as OpModelType<any>)._CUT_KEYS.includes(key)) {
+            if (!fullDataMode && ignoredKeys.includes(key)) {
                 continue;
             }
 
@@ -122,14 +132,21 @@ export class HydrateUtils {
                     where[pk as string] = data[relMeta.hydrationField]
                 }
 
-                model[relMeta.key] = await relMeta.model.findOneBy({ conditions: where }, { allowRelations: false });
+                // Get child model ignored keys to pass to find operation
+                const childIgnoredKeys = (relMeta.model as OpModelType<any>)._CUT_KEYS || [];
+                const childFields = childIgnoredKeys.length > 0 ? await this.getFieldsExcludingIgnored(relMeta.model, childIgnoredKeys) : undefined;
+
+                model[relMeta.key] = await relMeta.model.findOneBy({ 
+                    conditions: where,
+                    fields: childFields
+                }, { allowRelations: false });
             }
             else if (relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]) {
                 const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);
                 model[relMeta.key] = await newRelModel.save();
             }
 
-            const cutKeys = ((model.constructor as OpModelType<any>)._CUT_KEYS as string[]);
+            const cutKeys = ignoredKeys;
 
             const trackedField = Object.keys((await ModelUtils.getModelAnnotations(model.constructor as OpModelType<any>))).includes(relMeta.hydrationField);
 
@@ -139,5 +156,40 @@ export class HydrateUtils {
 
             // seriesHydrationfields.push(relMeta.hydrationField);
         }
+    }
+
+    /**
+     * Get all database fields for a model excluding ignored ones
+     */
+    private static async getFieldsExcludingIgnored(modelClass: OpModelType<any>, ignoredKeys: string[]): Promise<string[] | undefined> {
+        if (!ignoredKeys || ignoredKeys.length === 0) {
+            return undefined;
+        }
+
+        // Get proper database fields from model annotations
+        const tempInstance = new modelClass();
+        const annotations = await ModelUtils.getModelAnnotations(modelClass);
+        
+        // Get scalar fields (TrackType decorated fields)
+        const scalarFields = ModelUtils.getModelScalarFields(tempInstance);
+        
+        // Get relation fields from annotations
+        const relationFields = Object.keys(annotations).filter(key => 
+            annotations[key].annotationType === 'Relation' || 
+            annotations[key].annotationType === 'InverseRelation'
+        );
+        
+        // Combine all database fields
+        const allDbFields = [...scalarFields, ...relationFields];
+        
+        // Filter out ignored keys
+        const filteredFields = allDbFields.filter(field => !ignoredKeys.includes(field));
+        
+        // Always include id if not ignored
+        if (!filteredFields.includes('id') && !ignoredKeys.includes('id')) {
+            filteredFields.push('id');
+        }
+
+        return filteredFields.length > 0 ? filteredFields : undefined;
     }
 }

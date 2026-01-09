@@ -70,7 +70,7 @@ export class ModelUtils {
     }
 
     static getModelScalarFields(model: RWSModel<any>): string[] {       
-        return FieldsHelper.getAllClassFields(model)
+        return FieldsHelper.getAllClassFields(model.constructor)
                 .filter((item: string) => item.indexOf('TrackType') === 0)
                 .map((item: string) => item.split(':').at(-1));
     }

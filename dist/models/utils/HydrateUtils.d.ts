@@ -10,4 +10,8 @@ export declare class HydrateUtils {
     static hydrateRelations(model: RWSModel<any>, relManyData: RelManyMetaType<IRWSModel>, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: {
         [key: string]: any;
     }, postLoadExecute?: boolean): Promise<void>;
+    /**
+     * Get all database fields for a model excluding ignored ones
+     */
+    private static getFieldsExcludingIgnored;
 }

@@ -55,7 +55,7 @@ class ModelUtils {
         return baseClass.prototype.isPrototypeOf(constructor.prototype);
     }
     static getModelScalarFields(model) {
-        return FieldsHelper_1.FieldsHelper.getAllClassFields(model)
+        return FieldsHelper_1.FieldsHelper.getAllClassFields(model.constructor)
             .filter((item) => item.indexOf('TrackType') === 0)
             .map((item) => item.split(':').at(-1));
     }

@@ -547,8 +547,17 @@ class RWSModel<T> implements IModel {
                     // Check if it's already a full object with data or just an ID reference
                     if (relationData.id || Object.keys(relationData).length > 1) {
                         // Create new instance and hydrate ONLY basic fields, NO RELATIONS
+                        // Respect ignored_keys from child model
+                        const childIgnoredKeys = (ModelClass as OpModelType<any>)._CUT_KEYS || [];
                         const relatedInstance = new ModelClass();
-                        await relatedInstance._asyncFill(relationData, false, false, true);
+                        
+                        // Filter relationData to exclude ignored keys
+                        const filteredData = { ...relationData };
+                        for (const ignoredKey of childIgnoredKeys) {
+                            delete filteredData[ignoredKey];
+                        }
+                        
+                        await relatedInstance._asyncFill(filteredData, false, false, true);
                         this[key] = relatedInstance;
                     }
                 }
@@ -568,6 +577,7 @@ class RWSModel<T> implements IModel {
                         // Handle singular inverse relation as a single object
                         if (typeof relationData === 'object' && relationData !== null && 
                             (relationData.id || Object.keys(relationData).length > 1)) {
+                            const childIgnoredKeys = (ModelClass as OpModelType<any>)._CUT_KEYS || [];
                             const relatedInstance = new ModelClass();
                             
                             // Check relation metadata to identify foreign key fields that need to be preserved
@@ -597,7 +607,13 @@ class RWSModel<T> implements IModel {
                                 }
                             }
                             
-                            await relatedInstance._asyncFill(relationData, false, false, true);
+                            // Filter relationData to exclude ignored keys
+                            const filteredData = { ...relationData };
+                            for (const ignoredKey of childIgnoredKeys) {
+                                delete filteredData[ignoredKey];
+                            }
+                            
+                            await relatedInstance._asyncFill(filteredData, false, false, true);
                             this[key] = relatedInstance;
                         }
                     } else if (Array.isArray(relationData) && relationData.length > 0) {
@@ -605,6 +621,7 @@ class RWSModel<T> implements IModel {
                         const relatedInstances = [];
                         for (const itemData of relationData) {
                             if (typeof itemData === 'object' && itemData !== null) {
+                                const childIgnoredKeys = (ModelClass as OpModelType<any>)._CUT_KEYS || [];
                                 const relatedInstance = new ModelClass();
                                 
                                 // Check relation metadata to identify foreign key fields that need to be preserved
@@ -634,7 +651,13 @@ class RWSModel<T> implements IModel {
                                     }
                                 }
                                 
-                                await relatedInstance._asyncFill(itemData, false, false, true);
+                                // Filter itemData to exclude ignored keys
+                                const filteredData = { ...itemData };
+                                for (const ignoredKey of childIgnoredKeys) {
+                                    delete filteredData[ignoredKey];
+                                }
+                                
+                                await relatedInstance._asyncFill(filteredData, false, false, true);
                                 relatedInstances.push(relatedInstance);
                             }
                         }
@@ -663,8 +686,41 @@ class RWSModel<T> implements IModel {
             where[pk as string] = this[pk as string]
         }         
         
-        // Find the fresh data from database
-        const freshData = await FindUtils.findOneBy(this.constructor as OpModelType<any>, { conditions: where });
+        // Get ignored keys from model's @RWSCollection decorator
+        const ignoredKeys = ((this.constructor as OpModelType<any>)._CUT_KEYS || []);
+        let fields: string[] | undefined = undefined;
+        
+        // Build fields list excluding ignored ones if there are ignored keys
+        if (ignoredKeys.length > 0) {
+            // Get proper database fields from model annotations
+            const annotations = await ModelUtils.getModelAnnotations(this.constructor as OpModelType<any>);
+            
+            // Get scalar fields (TrackType decorated fields)
+            const scalarFields = ModelUtils.getModelScalarFields(this);
+            
+            // Get relation fields from annotations
+            const relationFields = Object.keys(annotations).filter(key => 
+                annotations[key].annotationType === 'Relation' || 
+                annotations[key].annotationType === 'InverseRelation'
+            );
+            
+            // Combine all database fields
+            const allDbFields = [...scalarFields, ...relationFields];
+            
+            // Filter out ignored keys
+            fields = allDbFields.filter(field => !ignoredKeys.includes(field));
+            
+            // Always include id if not ignored
+            if (!fields.includes('id') && !ignoredKeys.includes('id')) {
+                fields.push('id');
+            }
+        }
+        
+        // Find the fresh data from database with field filtering
+        const freshData = await FindUtils.findOneBy(this.constructor as OpModelType<any>, { 
+            conditions: where,
+            fields: fields
+        });
         
         if (!freshData) {
             return null;
