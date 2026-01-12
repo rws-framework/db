@@ -117,10 +117,10 @@ class HydrateUtils {
                     fields: childFields
                 }, { allowRelations: false });
             }
-            else if (relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]) {
-                const newRelModel = await relMeta.model.create(data[relMeta.key]);
-                model[relMeta.key] = await newRelModel.save();
-            }
+            // else if (relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]) {
+            //     const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);
+            //     model[relMeta.key] = await newRelModel.save();
+            // }
             const cutKeys = ignoredKeys;
             const trackedField = Object.keys((await ModelUtils_1.ModelUtils.getModelAnnotations(model.constructor))).includes(relMeta.hydrationField);
             if (!cutKeys.includes(relMeta.hydrationField) && !trackedField) {
