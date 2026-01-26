@@ -91,7 +91,7 @@ export class HydrateUtils {
                             [relMeta.foreignKey]: data[pk]
                         },
                         fields: childFields,
-                        allowRelations: false,
+                        allowRelations: false, // Prevent nested relation loading
                         cancelPostLoad: !postLoadExecute
                     });
                 } else {
@@ -100,7 +100,7 @@ export class HydrateUtils {
                             [relMeta.foreignKey]: data[pk]
                         },
                         fields: childFields,
-                        allowRelations: false,
+                        allowRelations: false, // Prevent nested relation loading
                         cancelPostLoad: !postLoadExecute
                     });
                 }
@@ -117,7 +117,12 @@ export class HydrateUtils {
             const relationEnabled = !RelationUtils.checkRelDisabled(model, relMeta.key);
 
             if (!data[relMeta.hydrationField] && relMeta.required) {
-                throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${this.constructor.name}.`)
+                // Only throw error if this is a fresh load, not a reload of existing model
+                if (!model.id) {
+                    throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${model.constructor.name}.`);
+                }
+                // For existing models (reloads), skip loading this relation if the field is missing
+                continue;
             }
 
             if (relationEnabled && data[relMeta.hydrationField]) {
@@ -139,7 +144,7 @@ export class HydrateUtils {
                 model[relMeta.key] = await relMeta.model.findOneBy({ 
                     conditions: where,
                     fields: childFields
-                }, { allowRelations: false });
+                }, { allowRelations: false }); // Prevent nested relation loading
             }
             // else if (relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]) {
             //     const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);

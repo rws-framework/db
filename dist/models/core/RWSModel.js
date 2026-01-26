@@ -113,7 +113,7 @@ class RWSModel {
         const relationsAlreadyPopulated = this.checkRelationsPrePopulated(data, relOneData, relManyData);
         if (allowRelations && !relationsAlreadyPopulated) {
             // Use traditional relation hydration if not pre-populated
-            await HydrateUtils_1.HydrateUtils.hydrateRelations(this, relManyData, relOneData, seriesHydrationfields, fullDataMode, data);
+            await HydrateUtils_1.HydrateUtils.hydrateRelations(this, relManyData, relOneData, seriesHydrationfields, fullDataMode, data, postLoadExecute);
         }
         else if (allowRelations && relationsAlreadyPopulated) {
             // Relations are already populated from Prisma, just assign them directly
@@ -355,23 +355,27 @@ class RWSModel {
             if (fields && fields.length > 0) {
                 return fields.includes(relationName);
             }
+            // If no relations config and no fields specified, include all relations
+            if (!hasRelationsConfig && (!fields || fields.length === 0)) {
+                return true;
+            }
             // If no fields specified but relations config exists, include enabled relations
             if (hasRelationsConfig) {
                 return allowedRelations[relationName] === true;
             }
-            // If no relations config and no fields specified, include all relations
+            // Default: include all relations when no restrictions
             return true;
         };
-        // Add one-to-one and many-to-one relations
+        // Add one-to-one and many-to-one relations (without nesting)
         for (const key in relOneData) {
             if (shouldIncludeRelation(key)) {
-                includes[key] = true;
+                includes[key] = true; // Only load this level, no nested relations
             }
         }
-        // Add one-to-many relations
+        // Add one-to-many relations (without nesting)
         for (const key in relManyData) {
             if (shouldIncludeRelation(key)) {
-                includes[key] = true;
+                includes[key] = true; // Only load this level, no nested relations
             }
         }
         return Object.keys(includes).length > 0 ? includes : null;
@@ -479,7 +483,7 @@ class RWSModel {
                             for (const ignoredKey of childIgnoredKeys) {
                                 delete filteredData[ignoredKey];
                             }
-                            await relatedInstance._asyncFill(filteredData, false, false, true);
+                            await relatedInstance._asyncFill(filteredData, false, false, true); // allowRelations = false
                             this[key] = relatedInstance;
                         }
                     }
@@ -519,7 +523,7 @@ class RWSModel {
                                 for (const ignoredKey of childIgnoredKeys) {
                                     delete filteredData[ignoredKey];
                                 }
-                                await relatedInstance._asyncFill(filteredData, false, false, true);
+                                await relatedInstance._asyncFill(filteredData, false, false, true); // allowRelations = false
                                 relatedInstances.push(relatedInstance);
                             }
                         }
@@ -543,45 +547,26 @@ class RWSModel {
         else {
             where[pk] = this[pk];
         }
-        // Get ignored keys from model's @RWSCollection decorator
-        const ignoredKeys = (this.constructor._CUT_KEYS || []);
-        let fields = undefined;
-        // Build fields list excluding ignored ones if there are ignored keys
-        if (ignoredKeys.length > 0) {
-            // Get proper database fields from model annotations
-            const annotations = await ModelUtils_1.ModelUtils.getModelAnnotations(this.constructor);
-            // Get scalar fields (TrackType decorated fields)
-            const scalarFields = ModelUtils_1.ModelUtils.getModelScalarFields(this);
-            // Get relation fields from annotations
-            const relationFields = Object.keys(annotations).filter(key => annotations[key].annotationType === 'Relation' ||
-                annotations[key].annotationType === 'InverseRelation');
-            // Combine all database fields
-            const allDbFields = [...scalarFields, ...relationFields];
-            // Filter out ignored keys
-            fields = allDbFields.filter(field => !ignoredKeys.includes(field));
-            // Always include id if not ignored
-            if (!fields.includes('id') && !ignoredKeys.includes('id')) {
-                fields.push('id');
-            }
-        }
-        // Find the fresh data from database with field filtering
-        const freshData = await FindUtils_1.FindUtils.findOneBy(this.constructor, {
+        // Use findBy with allowRelations to ensure all relations are loaded
+        // For reload(), allow unlimited depth by setting maxDepth to a high value
+        const results = await this.constructor.findBy({
             conditions: where,
-            fields: fields
+            allowRelations: true
         });
+        const freshData = results[0];
         if (!freshData) {
             return null;
         }
-        // Convert the fresh instance back to plain data for hydration
-        const plainData = await freshData.toMongo();
-        // Preserve foreign key fields from _relationFields to ensure relations can be hydrated
-        for (const key in this._relationFields) {
-            if (plainData[key] === undefined) {
-                plainData[key] = this._relationFields[key];
+        // Copy all properties from the fresh instance to this instance
+        Object.keys(this).forEach(key => {
+            if (!key.startsWith('_') && key !== 'postLoadExecuted') {
+                delete this[key];
             }
-        }
-        // Hydrate current instance with fresh data including relations
-        await this._asyncFill(plainData, true, true, true);
+        });
+        // Copy all data from fresh instance including relations
+        Object.keys(freshData).forEach(key => {
+            this[key] = freshData[key];
+        });
         return this;
     }
     // Helper method to get property with fallback to stored relation fields
