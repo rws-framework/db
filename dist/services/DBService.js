@@ -120,9 +120,11 @@ class DBService {
                 delete data[cKey];
             }
         }
+        // Convert foreign key fields to Prisma relation syntax
+        const processedData = this.convertForeignKeysToRelations(data);
         await prismaCollection.update({
             where,
-            data: data,
+            data: processedData,
         });
         return await this.findOneBy(collection, where);
     }
@@ -243,6 +245,57 @@ class DBService {
     }
     async count(opModel, where = {}) {
         return await this.getCollectionHandler(opModel._collection).count({ where });
+    }
+    /**
+     * Convert foreign key fields to Prisma relation syntax
+     * Handles common patterns like user_id -> creator, avatar_id -> avatar, etc.
+     */
+    convertForeignKeysToRelations(data) {
+        const processedData = { ...data };
+        const relationMappings = {
+            // Common relation mappings for foreign keys to relation names
+            'user_id': 'creator',
+            'avatar_id': 'avatar',
+            'file_id': 'logo',
+            'company_id': 'company',
+            'user_group_id': 'userGroup',
+            'accountGrade_id': 'accountGrade',
+            'account_balance_id': 'accountBalance',
+            'knowledgeGroup_id': 'project',
+            'conversation_id': 'conversation',
+            'message_id': 'message',
+            'knowledge_id': 'knowledge',
+            'profession_id': 'profession',
+            'step_id': 'step',
+            'question_id': 'question',
+            'tutorial_id': 'tutorial',
+            'tutorial_step_id': 'tutorialStep',
+            'tutorial_section_id': 'tutorialSection',
+            'todo_id': 'todo',
+            'bot_test_id': 'botTest',
+            'bot_test_tester_id': 'tester',
+            'bot_test_target_id': 'target',
+            'branch_id': 'branch',
+            'acl_policy_id': 'policy',
+            'instruction_file_id': 'instructionFile'
+        };
+        // Convert foreign key fields to relation syntax
+        Object.keys(processedData).forEach(key => {
+            if (key.endsWith('_id') && relationMappings[key]) {
+                const relationField = relationMappings[key];
+                const value = processedData[key];
+                // Remove the foreign key field
+                delete processedData[key];
+                // Add the relation field with proper Prisma syntax
+                if (value === null || value === undefined) {
+                    processedData[relationField] = { disconnect: true };
+                }
+                else {
+                    processedData[relationField] = { connect: { id: value } };
+                }
+            }
+        });
+        return processedData;
     }
     getPrismaClient() {
         if (!this.client || !this.connected) {

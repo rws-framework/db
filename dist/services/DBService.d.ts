@@ -35,6 +35,11 @@ declare class DBService {
     count<T = any>(opModel: OpModelType<T>, where?: {
         [k: string]: any;
     }): Promise<number>;
+    /**
+     * Convert foreign key fields to Prisma relation syntax
+     * Handles common patterns like user_id -> creator, avatar_id -> avatar, etc.
+     */
+    private convertForeignKeysToRelations;
     getPrismaClient(): PrismaClient;
 }
 export { DBService, IDBClientCreate };
