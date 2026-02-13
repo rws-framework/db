@@ -43,7 +43,8 @@ function Relation(theModel: () => OpModelType<RWSModel<any>>, relationOptions: P
                   null
             };  
             
-            if(relationOptions.required){
+            // Only set default cascade behavior if no explicit cascade was provided
+            if(relationOptions.required && !relationOptions.cascade){
                 if(!metaOpts.cascade){
                     metaOpts.cascade = {};
                 }

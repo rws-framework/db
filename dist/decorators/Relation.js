@@ -19,7 +19,8 @@ function Relation(theModel, relationOptions = _DEFAULTS) {
                     relationOptions.relationName :
                     null
             };
-            if (relationOptions.required) {
+            // Only set default cascade behavior if no explicit cascade was provided
+            if (relationOptions.required && !relationOptions.cascade) {
                 if (!metaOpts.cascade) {
                     metaOpts.cascade = {};
                 }
