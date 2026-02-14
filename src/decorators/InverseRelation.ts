@@ -9,6 +9,7 @@ export interface InverseRelationOpts {
     singular?: boolean
     relationName?: string
     mappingName?: string
+    orderBy?: { [field: string]: 'asc' | 'desc' }
 }
 
 function guessForeignKey(inversionModel: OpModelType<RWSModel<any>>, bindingModel: OpModelType<RWSModel<any>>, decoratorsData: any)

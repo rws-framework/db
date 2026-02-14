@@ -17,6 +17,10 @@ declare class RWSModel<T> implements IModel {
     static _CUT_KEYS: string[];
     private _relationFields;
     private postLoadExecuted;
+    /**
+     * Store relation foreign key fields for later hydration
+     */
+    private storeRelationFields;
     constructor(data?: any);
     isPostLoadExecuted(): boolean;
     setPostLoadExecuted(): void;

@@ -9,6 +9,41 @@ const RelationUtils_1 = require("./RelationUtils");
 const ModelUtils_1 = require("./ModelUtils");
 const chalk_1 = __importDefault(require("chalk"));
 class HydrateUtils {
+    /**
+     * Preprocess database data to convert foreign keys to relation objects when relations are not already populated
+     */
+    static async preprocessForeignKeys(data, model, relOneData) {
+        const processedData = { ...data };
+        // For each relation, handle different scenarios during creation and updates
+        for (const relationName in relOneData) {
+            const relationMeta = relOneData[relationName];
+            const foreignKeyField = relationMeta.hydrationField; // e.g., "tutorial_id"
+            const relationField = relationMeta.key; // e.g., "tutorial"
+            // Scenario 1: We have a foreign key value but no relation object (or the relation is just an ID)
+            if (foreignKeyField in data && data[foreignKeyField] !== null && data[foreignKeyField] !== undefined &&
+                (!data[relationField] || typeof data[relationField] !== 'object')) {
+                // Create a minimal relation object with just the ID
+                // This allows toMongo() to work properly without requiring full relation loading
+                processedData[relationField] = { id: data[foreignKeyField] };
+            }
+            // Scenario 2: We have a relation object but no foreign key field (common during creation)
+            // Ensure the foreign key field exists when we have a valid relation object
+            else if (data[relationField] && typeof data[relationField] === 'object' &&
+                data[relationField].id &&
+                (!(foreignKeyField in data) || data[foreignKeyField] === null || data[foreignKeyField] === undefined)) {
+                // Set the foreign key field from the relation object's ID
+                processedData[foreignKeyField] = data[relationField].id;
+            }
+            // Scenario 3: Both relation object and foreign key exist, ensure they're consistent
+            else if (data[relationField] && typeof data[relationField] === 'object' &&
+                data[relationField].id && foreignKeyField in data &&
+                data[foreignKeyField] !== data[relationField].id) {
+                // Prioritize the relation object's ID
+                processedData[foreignKeyField] = data[relationField].id;
+            }
+        }
+        return processedData;
+    }
     static async hydrateDataFields(model, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data) {
         const timeSeriesIds = TimeSeriesUtils_1.TimeSeriesUtils.getTimeSeriesModelFields(model);
         // Build a set of foreign key field names to skip
@@ -97,9 +132,14 @@ class HydrateUtils {
             const relMeta = relOneData[key];
             const relationEnabled = !RelationUtils_1.RelationUtils.checkRelDisabled(model, relMeta.key);
             if (!data[relMeta.hydrationField] && relMeta.required) {
-                // Only throw error if this is a fresh load, not a reload of existing model
-                if (!model.id) {
-                    throw new Error(`Relation field "${relMeta.hydrationField}" is required in model ${model.constructor.name}.`);
+                // Only throw error if this is a fresh load AND we're not in creation mode
+                // During creation, required relations might not have their foreign key set yet
+                if (!model.id && data[relMeta.key]) {
+                    // We have the relation object but not the foreign key - this is okay during creation
+                    continue;
+                }
+                else if (!model.id && !data[relMeta.key]) {
+                    throw new Error(`Required relation "${relMeta.key}" is missing in model ${model.constructor.name}.`);
                 }
                 // For existing models (reloads), skip loading this relation if the field is missing
                 continue;

@@ -30,6 +30,17 @@ class RWSModel {
     // Store relation foreign key fields for reload() functionality
     _relationFields = {};
     postLoadExecuted = false;
+    /**
+     * Store relation foreign key fields for later hydration
+     */
+    storeRelationFields(data, relOneData) {
+        for (const relationName in relOneData) {
+            const relationMeta = relOneData[relationName];
+            if (relationMeta.hydrationField && data[relationMeta.hydrationField]) {
+                this._relationFields[relationMeta.hydrationField] = data[relationMeta.hydrationField];
+            }
+        }
+    }
     constructor(data = null) {
         if (!this.getCollection()) {
             throw new Error('Model must have a collection defined');
@@ -109,6 +120,15 @@ class RWSModel {
             collections_to_models[model.getCollection()] = model;
         });
         const seriesHydrationfields = [];
+        // Always preprocess foreign keys to relation objects, even if allowRelations is false
+        // This is necessary because toMongo() expects relation objects to exist
+        try {
+            data = await HydrateUtils_1.HydrateUtils.preprocessForeignKeys(data, this, relOneData);
+        }
+        catch (error) {
+            console.error('Error in preprocessForeignKeys:', error);
+            throw error;
+        }
         // Check if relations are already populated from Prisma includes
         const relationsAlreadyPopulated = this.checkRelationsPrePopulated(data, relOneData, relManyData);
         if (allowRelations && !relationsAlreadyPopulated) {
@@ -118,15 +138,24 @@ class RWSModel {
         else if (allowRelations && relationsAlreadyPopulated) {
             // Relations are already populated from Prisma, just assign them directly
             await this.hydratePrePopulatedRelations(data, relOneData, relManyData);
-            // Create a copy of data without relation fields to prevent overwriting hydrated relations
+            // Create a copy of data without relation fields AND foreign key fields to prevent conflicts
             const dataWithoutRelations = { ...data };
             for (const key in relOneData) {
-                delete dataWithoutRelations[key];
+                delete dataWithoutRelations[key]; // Remove relation field (e.g., 'screenFile')
+                const relationMeta = relOneData[key];
+                if (relationMeta.hydrationField) {
+                    delete dataWithoutRelations[relationMeta.hydrationField]; // Remove foreign key field (e.g., 'screen_file_id')
+                }
             }
             for (const key in relManyData) {
-                delete dataWithoutRelations[key];
+                delete dataWithoutRelations[key]; // Remove relation array fields
             }
             data = dataWithoutRelations;
+        }
+        else {
+            // Even if relations are disabled, we still need to store relation foreign key fields
+            // for later hydration when reload() is called
+            this.storeRelationFields(data, relOneData);
         }
         // Process regular fields and time series (excluding relations when pre-populated)
         await HydrateUtils_1.HydrateUtils.hydrateDataFields(this, collections_to_models, relOneData, seriesHydrationfields, fullDataMode, data);
@@ -161,33 +190,29 @@ class RWSModel {
         // Get relation metadata to determine how to handle each relation
         const classFields = FieldsHelper_1.FieldsHelper.getAllClassFields(this.constructor);
         const relOneData = await this.getRelationOneMeta(classFields);
+        // Check if this is a new model (no ID) to handle relations differently during creation
+        const isNewModel = !this.id;
         for (const key in this) {
             if (await this.hasRelation(key)) {
                 const relationMeta = relOneData[key];
                 if (relationMeta) {
-                    // Use connect on relations that are either:
-                    // 1. Required (required: true)
-                    // 2. Have explicitly set cascade options (metaOpts.cascade)
-                    const hasExplicitCascade = relationMeta.cascade && Object.keys(relationMeta.cascade).length > 0;
-                    const shouldUseConnect = relationMeta.required || hasExplicitCascade;
-                    if (shouldUseConnect) {
-                        // Relations with required=true or explicit cascade → use connect
-                        if (this[key] === null) {
+                    // Always use Prisma relation syntax when relation objects exist
+                    // This ensures compatibility with Prisma's expected format
+                    if (this[key] === null || this[key] === undefined) {
+                        // Only add disconnect if this is an update (not a creation)
+                        if (!isNewModel) {
                             data[key] = { disconnect: true };
                         }
-                        else if (this[key] && this[key].id) {
-                            data[key] = { connect: { id: this[key].id } };
-                        }
+                        // For new models, we simply don't include the relation field
                     }
-                    else {
-                        // Simple optional relations → use foreign key field directly
-                        const foreignKeyField = relationMeta.hydrationField;
-                        if (this[key] === null) {
-                            data[foreignKeyField] = null;
-                        }
-                        else if (this[key] && this[key].id) {
-                            data[foreignKeyField] = this[key].id;
-                        }
+                    else if (this[key] && this[key].id) {
+                        data[key] = { connect: { id: this[key].id } };
+                    }
+                    else if (this[key] && typeof this[key] === 'object' && !this[key].id) {
+                        // Handle case where we have a relation object but it might not have an ID yet
+                        // This could happen if the relation object is also being created
+                        // In this case, we might want to create the relation first or handle it differently
+                        console.warn(`Relation ${key} has an object without ID. This might cause issues during creation.`);
                     }
                 }
                 continue;
@@ -222,7 +247,7 @@ class RWSModel {
         if (entryExists) {
             await this.preUpdate();
             const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
-            updatedModelData = await this.dbService.update(data, this.getCollection(), pk, this.constructor);
+            updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
             await this._asyncFill(updatedModelData);
             await this.postUpdate();
         }
@@ -375,7 +400,16 @@ class RWSModel {
         // Add one-to-many relations (without nesting)
         for (const key in relManyData) {
             if (shouldIncludeRelation(key)) {
-                includes[key] = true; // Only load this level, no nested relations
+                const relationMeta = relManyData[key];
+                if (relationMeta.orderBy) {
+                    // Add Prisma orderBy to the relation include
+                    includes[key] = {
+                        orderBy: relationMeta.orderBy
+                    };
+                }
+                else {
+                    includes[key] = true; // Only load this level, no nested relations
+                }
             }
         }
         return Object.keys(includes).length > 0 ? includes : null;

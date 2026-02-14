@@ -1,37 +1,4 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -134,7 +101,7 @@ class DBService {
         result = await prismaCollection.create({ data });
         return await this.findOneBy(collection, { id: result.id });
     }
-    async update(data, collection, pk, modelClass) {
+    async update(data, collection, pk) {
         const prismaCollection = this.getCollectionHandler(collection);
         const where = {};
         if (Array.isArray(pk)) {
@@ -153,11 +120,9 @@ class DBService {
                 delete data[cKey];
             }
         }
-        // Convert foreign key fields to Prisma relation syntax
-        const processedData = await this.convertForeignKeysToRelations(data, modelClass);
         await prismaCollection.update({
             where,
-            data: processedData,
+            data,
         });
         return await this.findOneBy(collection, where);
     }
@@ -278,57 +243,6 @@ class DBService {
     }
     async count(opModel, where = {}) {
         return await this.getCollectionHandler(opModel._collection).count({ where });
-    }
-    /**
-     * Convert foreign key fields to Prisma relation syntax
-     * Dynamically reads relation metadata from model decorators
-     */
-    async convertForeignKeysToRelations(data, modelClass) {
-        const processedData = { ...data };
-        let relationMappings = {};
-        // If model class is provided, dynamically build relation mappings from metadata
-        if (modelClass) {
-            try {
-                const { ModelUtils } = await Promise.resolve().then(() => __importStar(require('../models/utils/ModelUtils')));
-                const modelAnnotations = await ModelUtils.getModelAnnotations(modelClass);
-                // Build relation mappings from the model's relation metadata
-                Object.keys(modelAnnotations).forEach(propertyKey => {
-                    const annotation = modelAnnotations[propertyKey];
-                    if (annotation.annotationType === 'Relation') {
-                        const metadata = annotation.metadata;
-                        const relationField = metadata.relationField;
-                        const relationName = metadata.relationName || propertyKey;
-                        if (relationField) {
-                            relationMappings[relationField] = relationName;
-                        }
-                    }
-                });
-            }
-            catch (error) {
-                console.warn('Failed to read model relation metadata, falling back to static mappings:', error);
-            }
-        }
-        // Fallback to static mappings if no model class provided or metadata extraction fails
-        if (Object.keys(relationMappings).length === 0) {
-            relationMappings = {};
-        }
-        // Convert foreign key fields to relation syntax
-        Object.keys(processedData).forEach(key => {
-            if (key.endsWith('_id') && relationMappings[key]) {
-                const relationField = relationMappings[key];
-                const value = processedData[key];
-                // Remove the foreign key field
-                delete processedData[key];
-                // Add the relation field with proper Prisma syntax
-                if (value === null || value === undefined) {
-                    processedData[relationField] = { disconnect: true };
-                }
-                else {
-                    processedData[relationField] = { connect: { id: value } };
-                }
-            }
-        });
-        return processedData;
     }
     getPrismaClient() {
         if (!this.client || !this.connected) {

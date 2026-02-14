@@ -51,7 +51,8 @@ export class RelationUtils {
                         key: resolvedMetadata.key,         
                         inversionModel: resolvedMetadata.inversionModel,
                         foreignKey: resolvedMetadata.foreignKey,     
-                        singular: resolvedMetadata?.singular || false             
+                        singular: resolvedMetadata?.singular || false,
+                        orderBy: resolvedMetadata?.orderBy || null
                     };
                 }
             }                         

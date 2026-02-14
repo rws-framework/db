@@ -23,7 +23,7 @@ declare class DBService {
     cloneDatabase(source: string, target: string): Promise<void>;
     watchCollection(collectionName: string, preRun: () => void): Promise<any>;
     insert(data: any, collection: string, isTimeSeries?: boolean): Promise<any>;
-    update(data: any, collection: string, pk: string | string[], modelClass?: any): Promise<IModel>;
+    update(data: any, collection: string, pk: string | string[]): Promise<IModel>;
     findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, prismaOptions?: any): Promise<IModel | null>;
     delete(collection: string, conditions: any): Promise<void>;
     findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, pagination?: IPaginationParams, prismaOptions?: any): Promise<IModel[]>;
@@ -35,11 +35,6 @@ declare class DBService {
     count<T = any>(opModel: OpModelType<T>, where?: {
         [k: string]: any;
     }): Promise<number>;
-    /**
-     * Convert foreign key fields to Prisma relation syntax
-     * Dynamically reads relation metadata from model decorators
-     */
-    private convertForeignKeysToRelations;
     getPrismaClient(): PrismaClient;
 }
 export { DBService, IDBClientCreate };

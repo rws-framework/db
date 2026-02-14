@@ -2,6 +2,10 @@ import { RWSModel } from "../core/RWSModel";
 import { RelManyMetaType, RelOneMetaType } from "../types/RelationTypes";
 import { IRWSModel } from "../../types/IRWSModel";
 export declare class HydrateUtils {
+    /**
+     * Preprocess database data to convert foreign keys to relation objects when relations are not already populated
+     */
+    static preprocessForeignKeys(data: any, model: RWSModel<any>, relOneData: RelOneMetaType<IRWSModel>): Promise<any>;
     static hydrateDataFields(model: RWSModel<any>, collections_to_models: {
         [key: string]: any;
     }, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: {

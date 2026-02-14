@@ -24,6 +24,9 @@ export type RelManyMetaType<T extends IRWSModel> = {
         inversionModel: OpModelType<T>;
         foreignKey: string;
         singular: boolean;
+        orderBy?: {
+            [field: string]: 'asc' | 'desc';
+        };
     };
 };
 export {};

@@ -7,6 +7,9 @@ export interface InverseRelationOpts {
     singular?: boolean;
     relationName?: string;
     mappingName?: string;
+    orderBy?: {
+        [field: string]: 'asc' | 'desc';
+    };
 }
 declare function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, relationOptions?: Partial<InverseRelationOpts>): (target: any, key: string) => void;
 export default InverseRelation;
