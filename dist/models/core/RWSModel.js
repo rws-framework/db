@@ -222,7 +222,7 @@ class RWSModel {
         if (entryExists) {
             await this.preUpdate();
             const pk = ModelUtils_1.ModelUtils.findPrimaryKeyFields(this.constructor);
-            updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
+            updatedModelData = await this.dbService.update(data, this.getCollection(), pk, this.constructor);
             await this._asyncFill(updatedModelData);
             await this.postUpdate();
         }

@@ -279,7 +279,7 @@ class RWSModel<T> implements IModel {
 
             const pk = ModelUtils.findPrimaryKeyFields(this.constructor as OpModelType<any>);
 
-            updatedModelData = await this.dbService.update(data, this.getCollection(), pk);
+            updatedModelData = await this.dbService.update(data, this.getCollection(), pk, this.constructor);
 
             await this._asyncFill(updatedModelData);
             await this.postUpdate();
