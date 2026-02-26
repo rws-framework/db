@@ -241,6 +241,8 @@ class DBService {
             params.take = perPage;
         }
 
+        // console.trace(JSON.stringify(params, null, 2));
+
         const retData = await this.getCollectionHandler(collection).findMany(params);
 
         return retData;

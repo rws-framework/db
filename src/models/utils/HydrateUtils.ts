@@ -90,20 +90,31 @@ export class HydrateUtils {
                     continue;
                 }
 
-
                 const timeSeriesMetaData = timeSeriesIds[key];
 
                 if (timeSeriesMetaData) {
                     model[key] = data[key];
-                    const seriesModel = collections_to_models[timeSeriesMetaData.collection];
-
-                    const dataModels = await seriesModel.findBy({
-                        id: { in: data[key] }
-                    });
-
-                    seriesHydrationfields.push(timeSeriesMetaData.hydrationField);
-
-                    model[timeSeriesMetaData.hydrationField] = dataModels;
+                    
+                    // Create model instances from provided time series data if available
+                    const timeSeriesDataField = timeSeriesMetaData.hydrationField;
+                    if (data[timeSeriesDataField] && Array.isArray(data[timeSeriesDataField])) {
+                        const seriesModel = collections_to_models[timeSeriesMetaData.collection];
+                        const modelInstances: RWSModel<any>[] = [];
+                        
+                        for (const seriesItemData of data[timeSeriesDataField]) {
+                            const instanceData = typeof seriesItemData === 'object' ? seriesItemData : { id: seriesItemData };
+                            const instance = new seriesModel();
+                            for (const prop in instanceData) {
+                                if (instanceData.hasOwnProperty(prop)) {
+                                    instance[prop] = instanceData[prop];
+                                }
+                            }
+                            modelInstances.push(instance);
+                        }
+                        
+                        model[timeSeriesDataField] = modelInstances;
+                        seriesHydrationfields.push(timeSeriesDataField);
+                    }
                 } else {
                     model[key] = data[key];
                 }
@@ -114,46 +125,52 @@ export class HydrateUtils {
     static async hydrateRelations(model: RWSModel<any>, relManyData: RelManyMetaType<IRWSModel>, relOneData: RelOneMetaType<IRWSModel>, seriesHydrationfields: string[], fullDataMode: boolean, data: { [key: string]: any }, postLoadExecute = false) {
         const ignoredKeys = ((model).constructor as OpModelType<any>)._CUT_KEYS || [];
         
-        // Handle many-to-many relations
+        // Handle many-to-many relations using provided nested data
         for (const key in relManyData) {
             if (!fullDataMode && ignoredKeys.includes(key)) {
                 continue;
             }
 
             const relMeta = relManyData[key];
-
             const relationEnabled = !RelationUtils.checkRelDisabled(model, relMeta.key);
 
-            if (relationEnabled) {
-                const pk = ModelUtils.findPrimaryKeyFields(model.constructor as OpModelType<any>) as string;
-
-                // Get child model ignored keys to pass to find operations
-                const childIgnoredKeys = (relMeta.inversionModel as OpModelType<any>)._CUT_KEYS || [];
-                const childFields = childIgnoredKeys.length > 0 ? await this.getFieldsExcludingIgnored(relMeta.inversionModel, childIgnoredKeys) : undefined;
-
+            if (relationEnabled && data[relMeta.key]) {
+                // Create model instances from provided relation data
+                const relationData = data[relMeta.key];
+                
                 if (relMeta.singular) {
-                    model[relMeta.key] = await relMeta.inversionModel.findOneBy({
-                        conditions: {
-                            [relMeta.foreignKey]: data[pk]
-                        },
-                        fields: childFields,
-                        allowRelations: false, // Prevent nested relation loading
-                        cancelPostLoad: !postLoadExecute
-                    });
+                    // Single related model
+                    if (relationData && typeof relationData === 'object') {
+                        const instance = new relMeta.inversionModel();
+                        for (const prop in relationData) {
+                            if (relationData.hasOwnProperty(prop)) {
+                                instance[prop] = relationData[prop];
+                            }
+                        }
+                        model[relMeta.key] = instance;
+                    }
                 } else {
-                    model[relMeta.key] = await relMeta.inversionModel.findBy({
-                        conditions: {
-                            [relMeta.foreignKey]: data[pk]
-                        },
-                        fields: childFields,
-                        allowRelations: false, // Prevent nested relation loading
-                        cancelPostLoad: !postLoadExecute
-                    });
+                    // Multiple related models
+                    if (Array.isArray(relationData)) {
+                        const instances: RWSModel<any>[] = [];
+                        for (const itemData of relationData) {
+                            if (itemData && typeof itemData === 'object') {
+                                const instance = new relMeta.inversionModel();
+                                for (const prop in itemData) {
+                                    if (itemData.hasOwnProperty(prop)) {
+                                        instance[prop] = itemData[prop];
+                                    }
+                                }
+                                instances.push(instance);
+                            }
+                        }
+                        model[relMeta.key] = instances;
+                    }
                 }
             }
         }
 
-        // Handle one-to-one relations
+        // Handle one-to-one relations using provided nested data
         for (const key in relOneData) {
             if (!fullDataMode && ignoredKeys.includes(key)) {
                 continue;
@@ -162,7 +179,21 @@ export class HydrateUtils {
             const relMeta = relOneData[key];
             const relationEnabled = !RelationUtils.checkRelDisabled(model, relMeta.key);
 
-            if (!data[relMeta.hydrationField] && relMeta.required) {
+            // If relation data is directly provided in the data object
+            if (relationEnabled && data[relMeta.key]) {
+                const relationData = data[relMeta.key];
+                if (relationData && typeof relationData === 'object') {
+                    const instance = new relMeta.model();
+                    for (const prop in relationData) {
+                        if (relationData.hasOwnProperty(prop)) {
+                            instance[prop] = relationData[prop];
+                        }
+                    }
+                    model[relMeta.key] = instance;
+                }
+            }
+            // Handle case where we only have foreign key but relation is required
+            else if (!data[relMeta.hydrationField] && relMeta.required) {
                 // Only throw error if this is a fresh load AND we're not in creation mode
                 // During creation, required relations might not have their foreign key set yet
                 if (!model.id && data[relMeta.key]) {
@@ -175,41 +206,12 @@ export class HydrateUtils {
                 continue;
             }
 
-            if (relationEnabled && data[relMeta.hydrationField]) {
-                const pk = ModelUtils.findPrimaryKeyFields(relMeta.model);
-
-                const where: any = {};
-
-                if (Array.isArray(pk)) {
-                    console.log(chalk.yellowBright(`Hydration field "${relMeta.hydrationField}" on model "${model.constructor.name}" leads to compound key. Ignoring.`));
-                    continue;
-                } else {
-                    where[pk as string] = data[relMeta.hydrationField]
-                }
-
-                // Get child model ignored keys to pass to find operation
-                const childIgnoredKeys = (relMeta.model as OpModelType<any>)._CUT_KEYS || [];
-                const childFields = childIgnoredKeys.length > 0 ? await this.getFieldsExcludingIgnored(relMeta.model, childIgnoredKeys) : undefined;
-
-                model[relMeta.key] = await relMeta.model.findOneBy({ 
-                    conditions: where,
-                    fields: childFields
-                }, { allowRelations: false }); // Prevent nested relation loading
-            }
-            // else if (relationEnabled && !data[relMeta.hydrationField] && data[relMeta.key]) {
-            //     const newRelModel: RWSModel<any> = await relMeta.model.create(data[relMeta.key]);
-            //     model[relMeta.key] = await newRelModel.save();
-            // }
-
             const cutKeys = ignoredKeys;
-
             const trackedField = Object.keys((await ModelUtils.getModelAnnotations(model.constructor as OpModelType<any>))).includes(relMeta.hydrationField);
 
             if (!cutKeys.includes(relMeta.hydrationField) && !trackedField) {
                 cutKeys.push(relMeta.hydrationField)
             }
-
-            // seriesHydrationfields.push(relMeta.hydrationField);
         }
     }
 
