@@ -135,7 +135,25 @@ datasource db {
                 const bindingFieldExists = !!modelMetadatas[relationFieldName];  
                 const relatedFieldMeta = relatedModelMetadatas[relatedToField];
 
-                const foundInverseRelation = Object.values(relatedModelMetadatas).find(item => item.metadata.foreignKey === relationFieldName && item.metadata.inversionModel._collection === modelName);
+                // Find the matching InverseRelation on the related model
+                // First try exact FK match, then fall back to process-of-elimination
+                let foundInverseRelation = Object.values(relatedModelMetadatas).find(
+                    item => item.annotationType === 'InverseRelation' && 
+                        item.metadata.foreignKey === relationFieldName && 
+                        item.metadata.inversionModel._collection === modelName
+                );
+
+                if (!foundInverseRelation) {
+                    // FK names may differ between the two sides - try matching by model collection only
+                    const candidateInverses = Object.values(relatedModelMetadatas).filter(
+                        item => item.annotationType === 'InverseRelation' && 
+                            item.metadata.inversionModel._collection === modelName
+                    );
+                    // If only one InverseRelation points back to us, it must be the match
+                    if (candidateInverses.length === 1) {
+                        foundInverseRelation = candidateInverses[0];
+                    }
+                }
 
                 if(modelMetadata.required === false){
                     requiredString = '?';
@@ -206,10 +224,44 @@ datasource db {
                 const relationName = RelationManager.getShortenedRelationName(relatedModelName, modelName, relationIndex);                
                 const singular: boolean = relationMeta.singular;            
 
+                // Resolve the relation name by looking up the matching Relation on the inversion model.
+                // The Relation (FK owner) is the source of truth for the relation name.
+                // This ensures both sides of a Prisma relation use the same @relation("name").
+                let resolvedRelationName: string | null = relationMeta.relationName || null;
+
+                const inversionModelMetadatas: Record<string, { annotationType: string, metadata: any }> = await RWSModel.getModelAnnotations(relationMeta.inversionModel);
+                
+                // Find Relations on the inversion model that point back to the current model
+                const candidateRelations = Object.entries(inversionModelMetadatas)
+                    .filter(([_, meta]) => 
+                        meta.annotationType === 'Relation' && 
+                        meta.metadata.relatedTo?._collection === modelName
+                    );
+
+                if (candidateRelations.length > 0) {
+                    // Try exact FK match first (relationField on Relation === foreignKey on InverseRelation)
+                    let matchedRelation = candidateRelations.find(([_, meta]) => 
+                        meta.metadata.relationField === relationMeta.foreignKey
+                    );
+
+                    // If no exact FK match and only one candidate, it must be the match
+                    if (!matchedRelation && candidateRelations.length === 1) {
+                        matchedRelation = candidateRelations[0];
+                    }
+
+                    // Use the matching Relation's relationName if it has one (it's the source of truth)
+                    if (matchedRelation) {
+                        const [_, matchedMeta] = matchedRelation;
+                        if (matchedMeta.metadata.relationName) {
+                            resolvedRelationName = matchedMeta.metadata.relationName;
+                        }
+                    }
+                }
+
                 let relationTag = '';
 
-                if(relationMeta.relationName){
-                    relationTag = ` @relation("${relationMeta.relationName}")`;
+                if(resolvedRelationName){
+                    relationTag = ` @relation("${resolvedRelationName}")`;
                 }
 
                 section += `\t${key} ${relationMeta.inversionModel._collection}${singular ? '?' : '[]'}${relationTag}\n`;

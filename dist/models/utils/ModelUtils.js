@@ -3,12 +3,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ModelUtils = void 0;
 const FieldsHelper_1 = require("../../helper/FieldsHelper");
 class ModelUtils {
-    static async getModelAnnotations(constructor) {
+    static async getModelAnnotations(constructor, options = {}) {
+        const { resolveInverseRelations = true } = options;
         const annotationsData = {};
         const metadataKeys = Reflect.getMetadataKeys(constructor.prototype);
         const filteredMetaKeys = metadataKeys.filter((metaKey) => {
             const [annotationType, annotatedField] = metaKey.split(':');
             if (annotationType === 'TrackType' && annotatedField === 'id' && metadataKeys.includes('IdType:' + annotatedField)) {
+                return false;
+            }
+            // Skip InverseRelation metadata when not requested, to prevent
+            // circular promise deadlocks between models that reference each other
+            if (!resolveInverseRelations && annotationType === 'InverseRelation') {
                 return false;
             }
             return true;

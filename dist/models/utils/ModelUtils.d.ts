@@ -1,7 +1,9 @@
 import { RWSModel } from "../core/RWSModel";
 import { OpModelType } from "..";
 export declare class ModelUtils {
-    static getModelAnnotations<T extends unknown>(constructor: new () => T): Promise<Record<string, {
+    static getModelAnnotations<T extends unknown>(constructor: new () => T, options?: {
+        resolveInverseRelations?: boolean;
+    }): Promise<Record<string, {
         annotationType: string;
         metadata: any;
     }>>;

@@ -32,7 +32,9 @@ function InverseRelation(inversionModel, sourceModel, relationOptions = null) {
         const metadataPromise = Promise.resolve().then(async () => {
             const model = inversionModel();
             const source = sourceModel();
-            const decoratorsData = await ModelUtils_1.ModelUtils.getModelAnnotations(model);
+            // Only resolve Relation and TrackType metadata (not InverseRelation)
+            // to prevent circular promise deadlocks between models that reference each other
+            const decoratorsData = await ModelUtils_1.ModelUtils.getModelAnnotations(model, { resolveInverseRelations: false });
             const metaOpts = {
                 ...relationOptions,
                 key,

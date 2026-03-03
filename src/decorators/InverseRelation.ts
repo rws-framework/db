@@ -56,7 +56,9 @@ function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourc
         const metadataPromise = Promise.resolve().then(async () => {
             const model = inversionModel();
             const source = sourceModel();
-            const decoratorsData = await ModelUtils.getModelAnnotations(model);           
+            // Only resolve Relation and TrackType metadata (not InverseRelation)
+            // to prevent circular promise deadlocks between models that reference each other
+            const decoratorsData = await ModelUtils.getModelAnnotations(model, { resolveInverseRelations: false });           
 
             const metaOpts: InverseRelationOpts = {
                 ...relationOptions,

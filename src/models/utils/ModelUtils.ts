@@ -5,7 +5,11 @@ import { ISuperTagData } from "../../decorators/RWSCollection";
 import { FindByType } from "../../types/FindParams";
 
 export class ModelUtils {
-    static async getModelAnnotations<T extends unknown>(constructor: new () => T): Promise<Record<string, {annotationType: string, metadata: any}>> {    
+    static async getModelAnnotations<T extends unknown>(
+        constructor: new () => T,
+        options: { resolveInverseRelations?: boolean } = {}
+    ): Promise<Record<string, {annotationType: string, metadata: any}>> {    
+        const { resolveInverseRelations = true } = options;
         const annotationsData: Record<string, {annotationType: string, metadata: any}> = {};
     
         const metadataKeys = Reflect.getMetadataKeys(constructor.prototype);
@@ -13,6 +17,12 @@ export class ModelUtils {
         const filteredMetaKeys = metadataKeys.filter((metaKey) => {
             const [annotationType, annotatedField] = metaKey.split(':');
             if(annotationType === 'TrackType' && annotatedField === 'id' && metadataKeys.includes('IdType:' + annotatedField)){
+                return false;
+            }
+
+            // Skip InverseRelation metadata when not requested, to prevent
+            // circular promise deadlocks between models that reference each other
+            if (!resolveInverseRelations && annotationType === 'InverseRelation') {
                 return false;
             }
 
