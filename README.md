@@ -60,6 +60,215 @@ class User extends RWSModel<User> implements IUser {
 export default User;
 ```
 
+## TrackType decorator options & Prisma conversion
+
+### Signature
+
+```typescript
+@TrackType(type: any, opts?: ITrackerOpts, tags?: string[])
+```
+
+### Basic type mapping
+
+| TypeScript type | Prisma type  | Notes                                          |
+|-----------------|-------------|------------------------------------------------|
+| `String`        | `String`    |                                                |
+| `Number`        | `Int`       | Default for numbers, overridable via `dbOptions` |
+| `Boolean`       | `Boolean`   |                                                |
+| `Date`          | `DateTime`  |                                                |
+| `Object`        | `Json`      |                                                |
+| `BigInt`        | `BigInt`    |                                                |
+| `Array`         | `Json[]`    | `Json` on MySQL (no native array support)       |
+| `Unsupported`   | `Unsupported("...")` | Requires `dbOptions.extraTypeParams`   |
+
+### ITrackerOpts
+
+```typescript
+interface ITrackerOpts extends IDbOpts {
+    required?: boolean;       // adds @required to Prisma field
+    unique?: boolean | string; // adds @unique (string value for named index)
+    isArray?: boolean;        // appends [] to the Prisma type (Json on MySQL)
+    noAuto?: boolean;         // disables auto-generation behavior
+}
+```
+
+### Database-specific options (IDbOpts)
+
+Each database engine can receive its own options inside `dbOptions`:
+
+```typescript
+interface IDbOpts {
+    dbOptions?: {
+        mysql?: {
+            useType?: string;        // Prisma native type e.g. 'db.Float', 'db.Decimal', 'db.VarChar', 'db.Unsupported'
+            useText?: boolean;       // outputs @db.Text
+            maxLength?: number;      // used with db.VarChar → @db.VarChar(maxLength)
+            useUuid?: boolean;       // adds default(uuid()) on id fields
+            params?: string[];       // type params e.g. ['10','2'] → @db.Decimal(10, 2)
+            extraTypeParams?: string[]; // params for Unsupported type → Unsupported("param")
+        };
+        postgres?: {
+            useType?: string;        // same as mysql, mapped to PG equivalents
+            useText?: boolean;       // outputs @db.Text
+            maxLength?: number;      // used with db.VarChar
+            useUuid?: boolean;       // adds @default(uuid()) + @db.Uuid on id fields
+            params?: string[];       // type params for Decimal etc.
+            extraTypeParams?: string[]; // params for Unsupported type
+        };
+        mongodb?: {
+            customType?: string;     // outputs @db.<customType>
+            params?: string[];
+        };
+    }
+}
+```
+
+> **Inheritance**: PostgreSQL options inherit from MySQL when `postgres` key is not provided. This means setting `dbOptions.mysql` is often enough for both SQL engines, and `postgres` only needs to be specified for PG-specific overrides.
+
+### Type conversion rules
+
+**Number overrides** — When `useType` is set on the relevant DB engine:
+
+| `useType` value     | Prisma output (MySQL) | Prisma output (PostgreSQL)    |
+|--------------------|-----------------------|-------------------------------|
+| `db.Float`         | `Float`               | `Float` + `@db.Real`         |
+| `db.Decimal`       | `Decimal` + `@db.Decimal(params)` | `Decimal` + `@db.Decimal(params)` |
+| `db.DoublePrecision` | —                   | `Float` (PG DoublePrecision)  |
+| `db.Unsupported`   | `Unsupported("...")`  | `Unsupported("...")`          |
+
+**Unsupported type** — Use the `Unsupported` sentinel as the type argument and provide `extraTypeParams` to specify the native column type:
+
+```typescript
+import { Unsupported } from '@rws-framework/db';
+
+// PostgreSQL pgvector column
+@TrackType(Unsupported, { required: true, dbOptions: { postgres: {
+    extraTypeParams: ['vector(1536)']
+} } })
+fragment: number[];
+// → Prisma output: fragment Unsupported("vector(1536)")
+```
+
+### Examples
+
+**Basic required field:**
+```typescript
+@TrackType(String, { required: true })
+name: string;
+// → name String
+```
+
+**Unique field:**
+```typescript
+@TrackType(String, { unique: true })
+email: string;
+// → email String @unique
+```
+
+**Boolean field:**
+```typescript
+@TrackType(Boolean)
+active: boolean;
+// → active Boolean?
+```
+
+**MySQL/PG decimal with precision:**
+```typescript
+@TrackType(Number, { required: true, dbOptions: { mysql: {
+    useType: 'db.Decimal',
+    params: ['10', '2']
+} } })
+price: number;
+// MySQL  → price Decimal @db.Decimal(10, 2)
+// PG     → price Decimal @db.Decimal(10, 2)  (inherited from mysql)
+```
+
+**Float override:**
+```typescript
+@TrackType(Number, { dbOptions: { mysql: { useType: 'db.Float' } } })
+score: number;
+// MySQL → score Float?
+// PG    → score Float? @db.Real  (inherited & mapped)
+```
+
+**Text column:**
+```typescript
+@TrackType(String, { dbOptions: { mysql: { useText: true } } })
+description: string;
+// → description String? @db.Text
+```
+
+**VarChar with max length:**
+```typescript
+@TrackType(String, { dbOptions: { mysql: { useType: 'db.VarChar', maxLength: 500 } } })
+title: string;
+// MySQL → title String? @db.VarChar(500)
+// PG    → title String? @db.VarChar(500)
+```
+
+**PG-specific override (different from MySQL):**
+```typescript
+@TrackType(Number, { dbOptions: {
+    mysql: { useType: 'db.Float' },
+    postgres: { useType: 'db.DoublePrecision' }
+} })
+measurement: number;
+// MySQL → Float?
+// PG    → Float?  (DoublePrecision maps to Prisma Float)
+```
+
+**Unsupported native type (pgvector):**
+```typescript
+@TrackType(Unsupported, { required: true, dbOptions: { postgres: {
+    extraTypeParams: ['vector(1536)']
+} } })
+fragment: number[];
+// PG → fragment Unsupported("vector(1536)")
+```
+
+**Array field:**
+```typescript
+@TrackType(String, { isArray: true })
+tags: string[];
+// PG    → tags String[]
+// MySQL → tags Json  (no native array support)
+```
+
+### IdType decorator
+
+For customizing the model's `id` field:
+
+```typescript
+@IdType(type: any, opts?: IIdTypeOpts, tags?: string[])
+
+interface IIdTypeOpts extends IDbOpts {
+    unique?: boolean | string;
+    noAuto?: boolean;  // disables auto-generated id
+}
+```
+
+### RWSCollection decorator
+
+```typescript
+@RWSCollection(collectionName: string, options?: IRWSCollectionOpts)
+
+interface IRWSCollectionOpts {
+    relations?: { [key: string]: boolean };   // false = skip hydration for this relation
+    ignored_keys?: string[];                   // keys excluded from schema
+    noId?: boolean;                            // model has no auto id field
+    superTags?: ISuperTagData[];               // compound indexes etc.
+}
+
+interface ISuperTagData {
+    tagType: string;       // e.g. '@@unique', '@@index'
+    fields: string[];      // field names in the compound index
+    fieldParams?: { [key: string]: any };
+    map?: string;          // custom index name
+}
+```
+
+---
+
 ## Relations
 
 ***Basic many to one relation***

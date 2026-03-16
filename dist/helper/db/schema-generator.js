@@ -14,7 +14,7 @@ const type_converter_1 = require("./type-converter");
 const relation_manager_1 = require("./relation-manager");
 const child_process_1 = require("child_process");
 const _EXECUTE_PRISMA_CMD = true;
-const _REMOVE_SCHEMA_FILE = true;
+const _REMOVE_SCHEMA_FILE = false;
 /**
  * Handles Prisma schema generation
  */
@@ -26,17 +26,19 @@ class SchemaGenerator {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType, dbUrl, output, binaryTargets) {
+    static generateBaseSchema(dbType, dbUrl, output, binaryTargets, dbPreviewFeatures, dbExtensions) {
         process.env = { ...process.env, [this.dbUrlVarName]: dbUrl };
         return `generator client {
     provider = "prisma-client-js"
     ${output ? `output = "${this.ospath(output)}"` : ''}
+    ${dbPreviewFeatures ? `previewFeatures = ${JSON.stringify(dbPreviewFeatures)}` : ''}
     ${binaryTargets ? `binaryTargets = ${JSON.stringify(binaryTargets)}` : ''}
 }
 
 datasource db {
     provider = "${dbType}"
-    url = env("${this.dbUrlVarName}")    
+    url = env("${this.dbUrlVarName}")   
+    ${dbExtensions ? `extensions = [${dbExtensions.join(', ')}]` : ''}
 }`;
     }
     static ospath(outPath) {
@@ -323,10 +325,12 @@ datasource db {
      */
     static async installPrisma(configService, dbService, leaveFile = false) {
         const dbUrl = configService.get('db_url');
+        const dbPreviewFeatures = configService.get('db_preview_features');
         const dbType = configService.get('db_type') || 'mongodb';
         const dbPrismaOutput = configService.get('db_prisma_output');
         const dbPrismaBinaryTargets = configService.get('db_prisma_binary_targets');
-        let template = this.generateBaseSchema(dbType, dbUrl, dbPrismaOutput, dbPrismaBinaryTargets);
+        const dbExtensions = configService.get('db_extensions');
+        let template = this.generateBaseSchema(dbType, dbUrl, dbPrismaOutput, dbPrismaBinaryTargets, dbPreviewFeatures, dbExtensions);
         const dbModels = configService.get('db_models');
         if (dbModels) {
             for (const model of dbModels) {
@@ -378,6 +382,12 @@ datasource db {
                     stdio: 'inherit',
                     env
                 });
+            }
+            for (const model of dbModels) {
+                if (model.postSchemaUpdate) {
+                    await model.postSchemaUpdate();
+                    console.log(chalk_1.default.green('[RWS]'), chalk_1.default.blue('Post schema update executed for model'), model.name);
+                }
             }
             console.log(chalk_1.default.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
             if (_REMOVE_SCHEMA_FILE) {

@@ -4,6 +4,7 @@ exports.HydrateUtils = void 0;
 const TimeSeriesUtils_1 = require("./TimeSeriesUtils");
 const RelationUtils_1 = require("./RelationUtils");
 const ModelUtils_1 = require("./ModelUtils");
+const FieldsHelper_1 = require("../../helper/FieldsHelper");
 class HydrateUtils {
     /**
      * Preprocess database data to convert foreign keys to relation objects when relations are not already populated
@@ -50,6 +51,13 @@ class HydrateUtils {
                 foreignKeyFields.add(relationMeta.hydrationField);
             }
         }
+        // Build a set of inverse relation field names to skip
+        const inverseRelationFields = new Set();
+        const classFields = FieldsHelper_1.FieldsHelper.getAllClassFields(model.constructor);
+        const relManyData = await RelationUtils_1.RelationUtils.getRelationManyMeta(model, classFields);
+        for (const relationName in relManyData) {
+            inverseRelationFields.add(relManyData[relationName].key);
+        }
         // Get ignored keys from model's @RWSCollection decorator
         const ignoredKeys = (model).constructor._CUT_KEYS || [];
         for (const key in data) {
@@ -59,6 +67,10 @@ class HydrateUtils {
                 }
                 // Skip relation property names
                 if (Object.keys(relOneData).includes(key)) {
+                    continue;
+                }
+                // Skip inverse relation property names
+                if (inverseRelationFields.has(key)) {
                     continue;
                 }
                 // Skip foreign key field names

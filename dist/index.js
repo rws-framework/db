@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FieldsHelper = exports.DbHelper = exports.IdType = exports.InverseTimeSeries = exports.TrackType = exports.Relation = exports.InverseRelation = exports.DBService = exports.RWSCollection = exports.RWSModel = void 0;
+exports.FieldsHelper = exports.DbHelper = exports.IdType = exports.InverseTimeSeries = exports.TrackType = exports.Relation = exports.InverseRelation = exports.DBService = exports.Unsupported = exports.RWSCollection = exports.RWSModel = void 0;
 const DBService_1 = require("./services/DBService");
 Object.defineProperty(exports, "DBService", { enumerable: true, get: function () { return DBService_1.DBService; } });
 const _model_1 = require("./models/_model");
@@ -18,3 +18,5 @@ const FieldsHelper_1 = require("./helper/FieldsHelper");
 Object.defineProperty(exports, "FieldsHelper", { enumerable: true, get: function () { return FieldsHelper_1.FieldsHelper; } });
 const RWSCollection_1 = require("./decorators/RWSCollection");
 Object.defineProperty(exports, "RWSCollection", { enumerable: true, get: function () { return RWSCollection_1.RWSCollection; } });
+const Unsupported_1 = require("./models/types/Unsupported");
+Object.defineProperty(exports, "Unsupported", { enumerable: true, get: function () { return Unsupported_1.Unsupported; } });

@@ -65,6 +65,14 @@ export class HydrateUtils {
                 foreignKeyFields.add(relationMeta.hydrationField);
             }
         }
+
+        // Build a set of inverse relation field names to skip
+        const inverseRelationFields = new Set<string>();
+        const classFields = FieldsHelper.getAllClassFields(model.constructor);
+        const relManyData = await RelationUtils.getRelationManyMeta(model, classFields);
+        for (const relationName in relManyData) {
+            inverseRelationFields.add(relManyData[relationName].key);
+        }
         
         // Get ignored keys from model's @RWSCollection decorator
         const ignoredKeys = ((model).constructor as OpModelType<any>)._CUT_KEYS || [];
@@ -78,6 +86,11 @@ export class HydrateUtils {
 
                 // Skip relation property names
                 if (Object.keys(relOneData).includes(key)) {
+                    continue;
+                }
+
+                // Skip inverse relation property names
+                if (inverseRelationFields.has(key)) {
                     continue;
                 }
 

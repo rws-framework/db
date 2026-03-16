@@ -43,4 +43,5 @@ export interface OpModelType<T> {
     }>>;
     checkTimeSeries(constructor: any): boolean;
     checkDbVariable(constructor: any, variable: string): Promise<boolean>;
+    postSchemaUpdate?: () => Promise<void>;
 }

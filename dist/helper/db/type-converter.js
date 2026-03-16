@@ -36,6 +36,9 @@ class TypeConverter {
                             input = 'Float'; // PostgreSQL DoublePrecision maps to Prisma Float
                             numberOverride = true;
                         }
+                        if (['db.Unsupported'].includes(typeSource.useType)) {
+                            input = 'Unsupported(' + typeSource.extraTypeParams?.map(i => `"${i}"`).join(', ') + ')';
+                        }
                     }
                 }
                 // For MySQL, use mysql-specific options
@@ -49,11 +52,35 @@ class TypeConverter {
                             input = 'Decimal';
                             numberOverride = true;
                         }
+                        if (['db.Unsupported'].includes(modelType.dbOptions.mysql.useType)) {
+                            input = 'Unsupported(' + modelType.dbOptions.mysql.extraTypeParams?.map(i => `"${i}"`).join(', ') + ')';
+                        }
                     }
                 }
             }
             if (!numberOverride) {
                 input = 'Int';
+            }
+        }
+        if (input == 'Unsupported') {
+            if (modelType.dbOptions) {
+                console.log({ dbType, opts: modelType.dbOptions });
+                // For PostgreSQL, first check postgres-specific options, then inherit from mysql if available
+                if ((dbType === 'postgresql' || dbType === 'postgres')) {
+                    const pgOptions = modelType.dbOptions.postgres;
+                    const mysqlOptions = modelType.dbOptions.mysql;
+                    // Use postgres-specific type if available, otherwise inherit from mysql
+                    const typeSource = pgOptions || mysqlOptions;
+                    if (typeSource?.extraTypeParams) {
+                        input = 'Unsupported(' + typeSource.extraTypeParams?.map(i => `"${i}"`).join(', ') + ')';
+                    }
+                }
+                // For MySQL, use mysql-specific options
+                else if (dbType === 'mysql' && modelType.dbOptions.mysql) {
+                    if (modelType.dbOptions.mysql.extraTypeParams) {
+                        input = 'Unsupported(' + modelType.dbOptions.mysql.extraTypeParams?.map(i => `"${i}"`).join(', ') + ')';
+                    }
+                }
             }
         }
         if (input == 'BigInt') {

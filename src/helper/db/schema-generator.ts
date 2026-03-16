@@ -17,7 +17,7 @@ import { IDbOpts } from '../../models/interfaces/IDbOpts';
 import { execSync } from 'child_process';
 
 const _EXECUTE_PRISMA_CMD = true;
-const _REMOVE_SCHEMA_FILE = true;
+const _REMOVE_SCHEMA_FILE = false;
 
 /**
  * Handles Prisma schema generation
@@ -31,18 +31,20 @@ export class SchemaGenerator {
      * @param dbUrl The database URL
      * @returns The base schema
      */
-    static generateBaseSchema(dbType: string, dbUrl: string, output?: string, binaryTargets?: string[]): string {
+    static generateBaseSchema(dbType: string, dbUrl: string, output?: string, binaryTargets?: string[], dbPreviewFeatures?: string[], dbExtensions?: string[]): string {
         process.env = { ...process.env, [this.dbUrlVarName]: dbUrl };
 
         return `generator client {
     provider = "prisma-client-js"
     ${output ? `output = "${this.ospath(output)}"` : ''}
+    ${dbPreviewFeatures ? `previewFeatures = ${JSON.stringify(dbPreviewFeatures)}` : ''}
     ${binaryTargets ? `binaryTargets = ${JSON.stringify(binaryTargets)}` : ''}
 }
 
 datasource db {
     provider = "${dbType}"
-    url = env("${this.dbUrlVarName}")    
+    url = env("${this.dbUrlVarName}")   
+    ${dbExtensions ? `extensions = [${dbExtensions.join(', ')}]` : ''}
 }`;
     }
 
@@ -419,11 +421,13 @@ datasource db {
      */
     static async installPrisma(configService: IDbConfigHandler, dbService: DBService, leaveFile = false): Promise<void> {
         const dbUrl = configService.get('db_url');
+        const dbPreviewFeatures = configService.get('db_preview_features');
         const dbType = configService.get('db_type') || 'mongodb';
         const dbPrismaOutput = configService.get('db_prisma_output');
         const dbPrismaBinaryTargets = configService.get('db_prisma_binary_targets');
+        const dbExtensions = configService.get('db_extensions');
 
-        let template: string = this.generateBaseSchema(dbType, dbUrl, dbPrismaOutput, dbPrismaBinaryTargets);
+        let template: string = this.generateBaseSchema(dbType, dbUrl, dbPrismaOutput, dbPrismaBinaryTargets, dbPreviewFeatures, dbExtensions);
 
         const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');
 
@@ -496,6 +500,13 @@ datasource db {
                     env
                 });
             }            
+
+            for (const model of dbModels) {
+                if(model.postSchemaUpdate){
+                    await model.postSchemaUpdate();
+                    console.log(chalk.green('[RWS]'), chalk.blue('Post schema update executed for model'), model.name);
+                }
+            }
             
             console.log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 

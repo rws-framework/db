@@ -51,13 +51,12 @@ function TrackType(type: any, opts: ITrackerOpts | null = null, tags: string[] =
         metaOpts.unique = opts.unique;
     }
   
-    //const resolvedType = typeof type === 'function' ? type() : type;   
-    
     if(type._collection){    
         metaOpts.type = (type as any);
     }
   
-    return function(target: any, key: string) {          
+    return function(target: any, key: string) {       
+   
         Reflect.defineMetadata(`TrackType:${key}`, metaOpts, target);
     };
 }

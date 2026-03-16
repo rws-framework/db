@@ -19,6 +19,7 @@ import type  { ITimeSeries } from './types/ITimeSeries';
 import type { IDbConfigHandler, IDbConfigParams } from './types/DbConfigHandler';
 import type { IRWSModel } from './types/IRWSModel';
 import { RWSCollection, IRWSCollectionMeta, IRWSCollectionOpts } from "./decorators/RWSCollection";
+import { Unsupported } from "./models/types/Unsupported";
 
 export type {
    IRWSCollectionMeta, IRWSCollectionOpts,
@@ -38,7 +39,7 @@ export type {
 export {       
    RWSModel,  
    RWSCollection,
-   
+   Unsupported,
    DBService,
 
    FindByType,

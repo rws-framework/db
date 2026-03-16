@@ -37,7 +37,6 @@ function TrackType(type, opts = null, tags = []) {
     if (opts.unique) {
         metaOpts.unique = opts.unique;
     }
-    //const resolvedType = typeof type === 'function' ? type() : type;   
     if (type._collection) {
         metaOpts.type = type;
     }

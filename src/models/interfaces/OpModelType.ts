@@ -76,4 +76,5 @@ export interface OpModelType<T> {
     ): Promise<Record<string, { annotationType: string; metadata: any }>>;
     checkTimeSeries(constructor: any): boolean;
     checkDbVariable(constructor: any, variable: string): Promise<boolean>;
+    postSchemaUpdate?: () => Promise<void>;
 }

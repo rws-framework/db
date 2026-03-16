@@ -450,8 +450,12 @@ class RWSModel {
      * Hydrate pre-populated relations from Prisma includes (one level only)
      */
     async hydratePrePopulatedRelations(data, relOneData, relManyData) {
+        const ignoredKeys = (this).constructor._CUT_KEYS || [];
         // Handle one-to-one and many-to-one relations
         for (const key in relOneData) {
+            if (ignoredKeys.includes(key)) {
+                continue;
+            }
             if (data[key] && typeof data[key] === 'object' && data[key] !== null) {
                 const relationData = data[key];
                 const relMeta = relOneData[key];
@@ -476,6 +480,9 @@ class RWSModel {
         }
         // Handle one-to-many relations
         for (const key in relManyData) {
+            if (ignoredKeys.includes(key)) {
+                continue;
+            }
             if (data[key]) {
                 const relationData = data[key];
                 const relMeta = relManyData[key];
