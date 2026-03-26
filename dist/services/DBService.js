@@ -184,7 +184,6 @@ class DBService {
             params.skip = (pagination.page || 0) * perPage;
             params.take = perPage;
         }
-        // console.trace(JSON.stringify(params, null, 2));
         const retData = await this.getCollectionHandler(collection).findMany(params);
         return retData;
     }

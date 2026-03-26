@@ -85,7 +85,7 @@ export class FindUtils {
             
             // Build Prisma includes for relation preloading if relations are allowed
             const prismaOptions = allowRelations ? {
-                include: await opModel.buildPrismaIncludes(fields)
+                include: await opModel.buildPrismaIncludes(fullData ? null :fields)
             } : null;
             
             const dbData = await opModel.services.dbService.findBy(collection, conditions, fields, ordering, paginateParams, prismaOptions);
