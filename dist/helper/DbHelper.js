@@ -23,6 +23,9 @@ class DbHelper {
     static async installPrisma(configService, dbService, leaveFile = false) {
         return db_1.SchemaGenerator.installPrisma(configService, dbService, leaveFile);
     }
+    static async postSchemaGenerate(configService) {
+        return db_1.SchemaGenerator.postSchemaUpdates(configService);
+    }
     /**
      * Push database models to the database
      * @param configService The configuration service

@@ -33,6 +33,10 @@ export class DbHelper {
         return SchemaGenerator.installPrisma(configService, dbService, leaveFile);
     }
 
+    static async postSchemaGenerate(configService: IDbConfigHandler): Promise<void> {
+        return SchemaGenerator.postSchemaUpdates(configService);
+    }
+
     /**
      * Push database models to the database
      * @param configService The configuration service

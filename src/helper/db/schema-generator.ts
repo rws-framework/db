@@ -17,7 +17,7 @@ import { IDbOpts } from '../../models/interfaces/IDbOpts';
 import { execSync } from 'child_process';
 
 const _EXECUTE_PRISMA_CMD = true;
-const _REMOVE_SCHEMA_FILE = false;
+const _REMOVE_SCHEMA_FILE = true;
 
 /**
  * Handles Prisma schema generation
@@ -48,9 +48,8 @@ datasource db {
 }`;
     }
 
-    private static ospath(outPath: string): string
-    {
-        return outPath.split('')[1] === ':' ? outPath.replace(/\\/g,'\\\\') : outPath
+    private static ospath(outPath: string): string {
+        return outPath.split('')[1] === ':' ? outPath.replace(/\\/g, '\\\\') : outPath
     }
 
     /**
@@ -68,28 +67,28 @@ datasource db {
         const dbType = configService.get('db_type') || 'mongodb';
         const modelName: string = (model as any)._collection;
 
-        section += `model ${modelName} {\n`;               
+        section += `model ${modelName} {\n`;
 
-        let hasIdType = false;  
+        let hasIdType = false;
         let idFieldName: string;
 
-        for(const someModelMetaKey in modelMetadatas){
+        for (const someModelMetaKey in modelMetadatas) {
             const isIdTyped = modelMetadatas[someModelMetaKey].annotationType === 'IdType';
-            if(isIdTyped){
+            if (isIdTyped) {
                 hasIdType = true;
                 idFieldName = someModelMetaKey;
             }
         }
 
-        let idGenerated = false;      
-            
+        let idGenerated = false;
 
-        if(
-            !model._NO_ID && !hasIdType            
-        ){                     
-            section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;     
+
+        if (
+            !model._NO_ID && !hasIdType
+        ) {
+            section += `\t${DbUtils.generateId(dbType, modelMetadatas)}\n`;
             idGenerated = true;
-        }                        
+        }
 
         for (const key in modelMetadatas) {
             const modelMetadata = modelMetadatas[key].metadata;
@@ -98,15 +97,15 @@ datasource db {
 
             let indexedId = false;
 
-            if(model._NO_ID || hasIdType){
+            if (model._NO_ID || hasIdType) {
                 indexedId = true;
                 requiredString = '';
-            }                         
+            }
 
             if (key === 'id' && !indexedId) {
                 continue;
             }
-              
+
             if (annotationType === 'Relation') {
                 const relationMeta = modelMetadata as IRelationOpts;
 
@@ -124,31 +123,31 @@ datasource db {
 
                 const relatedModelName = relatedModel._collection;
                 const relationKey = [modelName, relatedModelName].join('_');
-                
+
                 const relationIndex = RelationManager.getRelationCounter(relationKey);
                 const relationName = relationMeta.relationName ? relationMeta.relationName : null;
 
-                const mapName = relationMeta.mappingName ? relationMeta.mappingName : null; 
+                const mapName = relationMeta.mappingName ? relationMeta.mappingName : null;
 
                 const relatedModelMetadatas: Record<string, { annotationType: string, metadata: ITrackerMetaOpts }> = await RWSModel.getModelAnnotations(relatedModel);
-                const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField  : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
+                const relationFieldName = modelMetadata.relationField ? modelMetadata.relationField : key.toLowerCase() + '_' + modelMetadata.relationField.toLowerCase();
 
                 const relatedToField = modelMetadata.relatedToField || 'id';
-                const bindingFieldExists = !!modelMetadatas[relationFieldName];  
+                const bindingFieldExists = !!modelMetadatas[relationFieldName];
                 const relatedFieldMeta = relatedModelMetadatas[relatedToField];
 
                 // Find the matching InverseRelation on the related model
                 // First try exact FK match, then fall back to process-of-elimination
                 let foundInverseRelation = Object.values(relatedModelMetadatas).find(
-                    item => item.annotationType === 'InverseRelation' && 
-                        item.metadata.foreignKey === relationFieldName && 
+                    item => item.annotationType === 'InverseRelation' &&
+                        item.metadata.foreignKey === relationFieldName &&
                         item.metadata.inversionModel._collection === modelName
                 );
 
                 if (!foundInverseRelation) {
                     // FK names may differ between the two sides - try matching by model collection only
                     const candidateInverses = Object.values(relatedModelMetadatas).filter(
-                        item => item.annotationType === 'InverseRelation' && 
+                        item => item.annotationType === 'InverseRelation' &&
                             item.metadata.inversionModel._collection === modelName
                     );
                     // If only one InverseRelation points back to us, it must be the match
@@ -157,13 +156,13 @@ datasource db {
                     }
                 }
 
-                if(modelMetadata.required === false){
+                if (modelMetadata.required === false) {
                     requiredString = '?';
-                }               
+                }
 
-                let cascadeStr = cascadeOpts.length ? `, ${cascadeOpts.join(', ')}` : '' ;
+                let cascadeStr = cascadeOpts.length ? `, ${cascadeOpts.join(', ')}` : '';
 
-                if(foundInverseRelation && foundInverseRelation.metadata.singular){                     
+                if (foundInverseRelation && foundInverseRelation.metadata.singular) {
                     cascadeStr = '';
                     requiredString = '?';
                 }
@@ -171,28 +170,28 @@ datasource db {
                 if (isMany) {
                     // Add an inverse field to the related model if it doesn't exist
                     section += `\t${key} ${relatedModel._collection}[] @relation(${relationName ? `"${relationName}", ` : ''}fields: [${relationFieldName}], references: [${relatedToField}]${mapName ? `, map: "${mapName}"` : ''}${cascadeStr})\n`;
-                } else {                             
+                } else {
                     section += `\t${key} ${relatedModel._collection}${requiredString} @relation(${relationName ? `"${relationName}", ` : ''}fields: [${relationFieldName}], references: [${relatedToField}]${mapName ? `, map: "${mapName}"` : ''}${cascadeStr})\n`;
-                    if(!bindingFieldExists){
+                    if (!bindingFieldExists) {
 
-                        if(!relatedFieldMeta.metadata.required){                     
+                        if (!relatedFieldMeta.metadata.required) {
                             requiredString = '';
                         }
-                        
+
                         const defaultIdType = DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
-                        let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true, relatedFieldMeta.annotationType !== 'TrackType' && relatedToField === 'id'  && relatedFieldMeta.metadata.type !== defaultIdType);                                 
-                                                                    
-                        if(relationMeta.required === false){
+                        let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true, relatedFieldMeta.annotationType !== 'TrackType' && relatedToField === 'id' && relatedFieldMeta.metadata.type !== defaultIdType);
+
+                        if (relationMeta.required === false) {
                             requiredString = '?';
                         }
 
                         let appendix = '';
 
-                        if(foundInverseRelation && foundInverseRelation.metadata.singular){                           
+                        if (foundInverseRelation && foundInverseRelation.metadata.singular) {
                             appendix = ' @unique';
                             requiredString = '?';
                         }
-                    
+
                         // Add relation field with appropriate type based on database
                         if (dbType === 'mongodb') {
                             section += `\t${relationFieldName} String${requiredString} @db.ObjectId${appendix}\n`;
@@ -205,7 +204,7 @@ datasource db {
                             } else {
                                 section += `\t${relationFieldName} ${relatedFieldType}${requiredString}${appendix}\n`;
                             }
-                        } else {                        
+                        } else {
                             section += `\t${relationFieldName} String${requiredString}${appendix}\n`;
                         }
                     }
@@ -223,8 +222,8 @@ datasource db {
                 const relationKey = [relatedModelName, modelName].join('_');
                 const relationIndex = RelationManager.getRelationCounter(relationKey, true);
 
-                const relationName = RelationManager.getShortenedRelationName(relatedModelName, modelName, relationIndex);                
-                const singular: boolean = relationMeta.singular;            
+                const relationName = RelationManager.getShortenedRelationName(relatedModelName, modelName, relationIndex);
+                const singular: boolean = relationMeta.singular;
 
                 // Resolve the relation name by looking up the matching Relation on the inversion model.
                 // The Relation (FK owner) is the source of truth for the relation name.
@@ -232,17 +231,17 @@ datasource db {
                 let resolvedRelationName: string | null = relationMeta.relationName || null;
 
                 const inversionModelMetadatas: Record<string, { annotationType: string, metadata: any }> = await RWSModel.getModelAnnotations(relationMeta.inversionModel);
-                
+
                 // Find Relations on the inversion model that point back to the current model
                 const candidateRelations = Object.entries(inversionModelMetadatas)
-                    .filter(([_, meta]) => 
-                        meta.annotationType === 'Relation' && 
+                    .filter(([_, meta]) =>
+                        meta.annotationType === 'Relation' &&
                         meta.metadata.relatedTo?._collection === modelName
                     );
 
                 if (candidateRelations.length > 0) {
                     // Try exact FK match first (relationField on Relation === foreignKey on InverseRelation)
-                    let matchedRelation = candidateRelations.find(([_, meta]) => 
+                    let matchedRelation = candidateRelations.find(([_, meta]) =>
                         meta.metadata.relationField === relationMeta.foreignKey
                     );
 
@@ -262,12 +261,12 @@ datasource db {
 
                 let relationTag = '';
 
-                if(resolvedRelationName){
+                if (resolvedRelationName) {
                     relationTag = ` @relation("${resolvedRelationName}")`;
                 }
 
                 section += `\t${key} ${relationMeta.inversionModel._collection}${singular ? '?' : '[]'}${relationTag}\n`;
-                
+
                 RelationManager.completeRelation(relationKey, relationIndex, true);
             } else if (annotationType === 'InverseTimeSeries') {
                 if (dbType === 'mongodb') {
@@ -284,25 +283,25 @@ datasource db {
             } else {
                 const trackMeta = modelMetadata as ITrackerMetaOpts;
                 const trackTags = trackMeta.tags || [];
-                const tags: string[] = trackTags.map((item: string) => '@' + item);  
-                             
+                const tags: string[] = trackTags.map((item: string) => '@' + item);
+
                 const isNoIdBehavior = model._NO_ID || idFieldName;
-                const isOverrideBehavior = (hasIdType && annotationType === 'IdType' && key === 'id' && idFieldName === 'id') 
-                    || 
+                const isOverrideBehavior = (hasIdType && annotationType === 'IdType' && key === 'id' && idFieldName === 'id')
+                    ||
                     (model._NO_ID && model._SUPER_TAGS.some(a => a.fields.includes('id')) && key === 'id');
-                                                                
-                if(key === 'id' && 
-                    isNoIdBehavior && !isOverrideBehavior               
-                ){                  
+
+                if (key === 'id' &&
+                    isNoIdBehavior && !isOverrideBehavior
+                ) {
                     continue;
                 }
 
-                if(trackMeta.unique){
+                if (trackMeta.unique) {
                     const fieldDetail: string | null = typeof trackMeta.unique === 'string' ? trackMeta.unique : null;
                     tags.push(`@unique(${fieldDetail ? `map: "${fieldDetail}"` : ''})`);
                 }
 
-                if(!trackMeta.required){
+                if (!trackMeta.required) {
                     requiredString = '?';
                 }
 
@@ -310,58 +309,58 @@ datasource db {
                     requiredString = '';
                 }
 
-                if(model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes(key))){
+                if (model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes(key))) {
                     requiredString = '';
                 }
-               
+
                 // Process any database-specific options from the metadata
                 const dbSpecificTags = TypeConverter.processTypeOptions(trackMeta as { tags: string[], dbOptions: IDbOpts['dbOptions'] }, dbType);
                 tags.push(...dbSpecificTags);
-         
-                const isIdTypeField = modelMetadatas[key].annotationType === 'IdType';                         
+
+                const isIdTypeField = modelMetadatas[key].annotationType === 'IdType';
                 const fieldInUniqueSuperTag = model._SUPER_TAGS.some(st => st.tagType === 'unique' && st.fields.includes(key));
 
-                if(isIdTypeField){
+                if (isIdTypeField) {
                     requiredString = '';
-                }        
+                }
 
                 let trackField = `${key} ${TypeConverter.toConfigCase(trackMeta, dbType, key === 'id', isOverrideBehavior)}${requiredString} ${tags.join(' ')}`;
 
-                if(isIdTypeField){
+                if (isIdTypeField) {
                     trackField += DbUtils.addIdPart(dbType, DbUtils.doesUseUuid(modelMetadatas), trackMeta.noAuto);
-                    idGenerated = true;                                   
-                }          
+                    idGenerated = true;
+                }
 
                 section += `\t${trackField}\n`;
             }
         }
 
-        if(model._SUPER_TAGS.length){
+        if (model._SUPER_TAGS.length) {
             section += '\n';
         }
 
-        for(const superTag of model._SUPER_TAGS){
+        for (const superTag of model._SUPER_TAGS) {
 
             let mapStr = '';
 
-            if(superTag.map){
-                const superFieldMapMeta = modelMetadatas[superTag.map];    
-                
+            if (superTag.map) {
+                const superFieldMapMeta = modelMetadatas[superTag.map];
+
                 let mapField: string = superTag.map;
 
-                if(superFieldMapMeta){
+                if (superFieldMapMeta) {
                     mapField = this.getSuperFieldFromModel(mapField, superFieldMapMeta);
                 }
 
                 mapStr = `, map: "${mapField}"`;
-            }                    
+            }
 
             const superFields = [];
-        
-            for(let superField of superTag.fields){
-                const superFieldElemMeta = modelMetadatas[superField];                
 
-                if(!superFieldElemMeta){
+            for (let superField of superTag.fields) {
+                const superFieldElemMeta = modelMetadatas[superField];
+
+                if (!superFieldElemMeta) {
                     console.log(chalk.yellowBright(`Ignoring "${superField}" field in "${superTag.tagType}" supertag in model "${modelName}"`));
                     continue;
                 }
@@ -369,23 +368,23 @@ datasource db {
                 const fieldMetadata = superFieldElemMeta.metadata;
 
                 superField = this.getSuperFieldFromModel(superField, superFieldElemMeta);
-    
+
                 let pushed = false;
 
-                if(fieldMetadata.dbOptions && fieldMetadata.dbOptions.mysql && fieldMetadata.dbOptions.mysql.useType){                        
-                    switch(fieldMetadata.dbOptions.mysql.useType){
-                        case 'db.LongText': 
-                            superFields.push(`${superField}(length: 255)`);                                    
+                if (fieldMetadata.dbOptions && fieldMetadata.dbOptions.mysql && fieldMetadata.dbOptions.mysql.useType) {
+                    switch (fieldMetadata.dbOptions.mysql.useType) {
+                        case 'db.LongText':
+                            superFields.push(`${superField}(length: 255)`);
                             pushed = true;
-                        break;
-                    }                    
+                            break;
+                    }
                 }
 
-                if(!pushed){
+                if (!pushed) {
                     superFields.push(superField);
                 }
             }
-            
+
             section += `\t@@${superTag.tagType}([${superFields.join(', ')}]${mapStr})\n`;
         }
 
@@ -396,12 +395,11 @@ datasource db {
     private static getSuperFieldFromModel(superFieldElemName: string, superFieldElemMeta: {
         annotationType: string;
         metadata: any;
-    }): string
-    {
+    }): string {
 
         const fieldDecorator = superFieldElemMeta.annotationType;
 
-        if(fieldDecorator === 'Relation'){
+        if (fieldDecorator === 'Relation') {
             const fieldMetadata = superFieldElemMeta.metadata as IRelationOpts;
             superFieldElemName = fieldMetadata.relationField;
         }
@@ -431,37 +429,37 @@ datasource db {
 
         const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');
 
-        if (dbModels) {   
+        if (dbModels) {
             for (const model of dbModels) {
                 const modelName = (model as any)._collection;
                 const modelMetadatas: Record<string, { annotationType: string, metadata: any }> = await RWSModel.getModelAnnotations(model);
-                
+
                 for (const key in modelMetadatas) {
                     const annotationType: string = modelMetadatas[key].annotationType;
 
                     if (annotationType === 'Relation') {
                         const relationMeta = modelMetadatas[key].metadata as IRelationOpts;
-                        
+
                         const relatedModel = relationMeta.relatedTo as OpModelType<any>;
                         const relatedModelName = relatedModel._collection;
 
-                        const relationKey = [modelName, relatedModelName].join('_');                      
+                        const relationKey = [modelName, relatedModelName].join('_');
 
                         // Add this relation to the map
-                        RelationManager.markRelation(relationKey);                                  
+                        RelationManager.markRelation(relationKey);
                     }
-                    
-                    if(annotationType === 'InverseRelation'){
+
+                    if (annotationType === 'InverseRelation') {
                         const relationMeta = modelMetadatas[key].metadata as InverseRelationOpts;
                         const relatedModel = relationMeta.inversionModel as OpModelType<any>;
-                        
+
                         const relatedModelName = relatedModel._collection;
-            
-                        const relationKey = [relatedModelName, modelName].join('_');                      
+
+                        const relationKey = [relatedModelName, modelName].join('_');
                         RelationManager.markRelation(relationKey, true);
                     }
                 }
-            }            
+            }
 
             // Now generate the model sections with all relations
             for (const model of dbModels) {
@@ -484,12 +482,12 @@ datasource db {
 
             fs.writeFileSync(schemaPath, template);
 
-            if(_EXECUTE_PRISMA_CMD){
+            if (_EXECUTE_PRISMA_CMD) {
                 const prismaPath = this.getPrismaExec();
-                    
+
                 // Set environment variables
                 const env = {
-                    ...process.env,            
+                    ...process.env,
                     [this.dbUrlVarName]: configService.get('db_url')
                 };
 
@@ -499,15 +497,8 @@ datasource db {
                     stdio: 'inherit',
                     env
                 });
-            }            
-
-            for (const model of dbModels) {
-                if(model.postSchemaUpdate){
-                    await model.postSchemaUpdate();
-                    console.log(chalk.green('[RWS]'), chalk.blue('Post schema update executed for model'), model.name);
-                }
             }
-            
+
             console.log(chalk.green('[RWS Init]') + ' prisma schema generated from ', schemaPath);
 
             if (_REMOVE_SCHEMA_FILE) {
@@ -515,6 +506,33 @@ datasource db {
             }
         }
     }
+
+    static async waitFor(waitConditionFn: () => boolean) {
+        return new Promise<void>((resolve) => {
+            const interval = setInterval(() => {
+                if (waitConditionFn()) {
+                    clearInterval(interval);
+                    resolve();
+                } else {
+                    console.log('Awaiting for schema generation.');
+                }
+            }, 2000);
+        });
+    }
+
+    static async postSchemaUpdates(configService: IDbConfigHandler): Promise<void> {
+        const dbModels: OpModelType<unknown>[] | null = configService.get('db_models');
+        if (dbModels) {
+            for (const model of dbModels) {
+                if (model.postSchemaUpdate) {
+                    await model.postSchemaUpdate();
+                    console.log(chalk.green('[RWS]'), chalk.blue('Post schema update executed for model'), model.name);
+                }
+            }
+        }
+
+    }
+
 
     /**
      * Push database models to the database
@@ -527,11 +545,11 @@ datasource db {
 
         const [_, schemaPath] = DbUtils.getProcessedSchemaDir();
 
-        const prismaPath = this.getPrismaExec();        
-                    
+        const prismaPath = this.getPrismaExec();
+
         // Set environment variables
         const env = {
-            ...process.env,            
+            ...process.env,
             [this.dbUrlVarName]: configService.get('db_url')
         };
 

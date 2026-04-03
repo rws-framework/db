@@ -30,6 +30,8 @@ export declare class SchemaGenerator {
      * @param leaveFile Whether to leave the schema file after generation
      */
     static installPrisma(configService: IDbConfigHandler, dbService: DBService, leaveFile?: boolean): Promise<void>;
+    static waitFor(waitConditionFn: () => boolean): Promise<void>;
+    static postSchemaUpdates(configService: IDbConfigHandler): Promise<void>;
     /**
      * Push database models to the database
      * @param configService The configuration service
