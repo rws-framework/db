@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Collection, Db, MongoClient } from 'mongodb';
 import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
@@ -14,7 +14,9 @@ declare class DBService {
     private client;
     private opts;
     private connected;
+    private extensions;
     constructor(configService: IDbConfigHandler);
+    addExtension(extension: Parameters<typeof Prisma.defineExtension>[0]): void;
     private connectToDB;
     reconnect(opts?: IDBClientCreate): void;
     static baseClientConstruct(dbUrl: string): MongoClient;

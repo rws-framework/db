@@ -1,5 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Collection, Db, MongoClient } from 'mongodb';
+
+type ExtendedPrismaClient = PrismaClient | ReturnType<PrismaClient['$extends']>;
 import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import chalk from 'chalk';
@@ -14,11 +16,23 @@ interface IDBClientCreate {
 }
 
 class DBService {
-    private client: PrismaClient;
+    private client: ExtendedPrismaClient;
     private opts: IDBClientCreate = null;
     private connected = false;
+    private extensions: ReturnType<typeof Prisma.defineExtension>[] = [];
 
     constructor(private configService: IDbConfigHandler) { }
+
+    addExtension(extension: Parameters<typeof Prisma.defineExtension>[0]): void {
+        if(this.extensions.some(ext => ext.name === extension.name)) {
+            console.warn(chalk.yellow(`Extension with name ${extension.name} already exists. Skipping.`));
+            return;
+        }
+        this.extensions.push(Prisma.defineExtension(extension));
+        if (this.connected) {
+            this.reconnect();
+        }
+    }
 
     private connectToDB(opts: IDBClientCreate = null) {
         if (opts) {
@@ -37,13 +51,21 @@ class DBService {
         }
 
         try {
-            this.client = new PrismaClient({
+            let theClient: ExtendedPrismaClient = new PrismaClient({
                 datasources: {
                     db: {
                         url: this.opts.dbUrl
                     },
                 },
             });
+
+            for (const ext of this.extensions) {
+                theClient = (theClient as PrismaClient).$extends(ext) as ReturnType<PrismaClient['$extends']>;
+            }
+
+            console.log('DB EXTENSIONS: ', this.extensions.length)
+
+            this.client = theClient;
 
             this.connected = true;
         } catch (e: Error | any) {
@@ -294,7 +316,7 @@ class DBService {
             this.connectToDB();
         }
 
-        return (this.client[collection as keyof PrismaClient] as any);
+        return Reflect.get(this.client, collection);
     }
 
     private convertOrderingToPrismaFormat(ordering: OrderByType): any {
@@ -325,7 +347,7 @@ class DBService {
             this.connectToDB();
         }
 
-        return this.client;
+        return this.client as PrismaClient;
     }
 }
 

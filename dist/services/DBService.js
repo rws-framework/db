@@ -12,8 +12,19 @@ class DBService {
     client;
     opts = null;
     connected = false;
+    extensions = [];
     constructor(configService) {
         this.configService = configService;
+    }
+    addExtension(extension) {
+        if (this.extensions.some(ext => ext.name === extension.name)) {
+            console.warn(chalk_1.default.yellow(`Extension with name ${extension.name} already exists. Skipping.`));
+            return;
+        }
+        this.extensions.push(client_1.Prisma.defineExtension(extension));
+        if (this.connected) {
+            this.reconnect();
+        }
     }
     connectToDB(opts = null) {
         if (opts) {
@@ -30,13 +41,18 @@ class DBService {
             return;
         }
         try {
-            this.client = new client_1.PrismaClient({
+            let theClient = new client_1.PrismaClient({
                 datasources: {
                     db: {
                         url: this.opts.dbUrl
                     },
                 },
             });
+            for (const ext of this.extensions) {
+                theClient = theClient.$extends(ext);
+            }
+            console.log('DB EXTENSIONS: ', this.extensions.length);
+            this.client = theClient;
             this.connected = true;
         }
         catch (e) {
@@ -224,7 +240,7 @@ class DBService {
         if (!this.client || !this.connected) {
             this.connectToDB();
         }
-        return this.client[collection];
+        return Reflect.get(this.client, collection);
     }
     convertOrderingToPrismaFormat(ordering) {
         if (!ordering) {
