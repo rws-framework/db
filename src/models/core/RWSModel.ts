@@ -1,7 +1,7 @@
 import { IModel } from '../interfaces/IModel';
 import { IRWSModelServices } from '../interfaces/IRWSModelServices';
 import { OpModelType } from '../interfaces/OpModelType';
-import { TrackType } from '../../decorators';
+import { IdType } from '../../decorators';
 import { FieldsHelper } from '../../helper/FieldsHelper';
 import { FindByType, IPaginationParams } from '../../types/FindParams';
 import { RelationUtils } from '../utils/RelationUtils';
@@ -18,7 +18,7 @@ class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
     
     [key: string]: any;
-    @TrackType(String)
+    @IdType(String)
     id: string | number;
     static _collection: string = null;
     static _RELATIONS = {};

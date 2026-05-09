@@ -12,9 +12,12 @@
       "resolveJsonModule": true,
       "strictNullChecks": false,
       "allowSyntheticDefaultImports": true,
+      "ignoreDeprecations": "5.0",
       "sourceMap": false,      
       "declaration": true,   
+      "rootDir": "./src",
       "outDir": "./dist",
+      "forceConsistentCasingInFileNames": true,
       "types": ["node"]       
     },
     "include": [

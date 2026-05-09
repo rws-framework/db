@@ -162,7 +162,7 @@ datasource db {
                             }
                         }
                         else {
-                            section += `\t${relationFieldName} String${requiredString}${appendix}\n`;
+                            section += `\t${relationFieldName} ${relatedFieldType}${requiredString}${appendix}\n`;
                         }
                     }
                 }
