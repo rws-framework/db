@@ -135,7 +135,7 @@ datasource db {
                         if (!relatedFieldMeta.metadata.required) {
                             requiredString = '';
                         }
-                        const defaultIdType = utils_1.DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
+                        const defaultIdType = utils_1.DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type?.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
                         let relatedFieldType = type_converter_1.TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true, relatedFieldMeta.annotationType !== 'TrackType' && relatedToField === 'id' && relatedFieldMeta.metadata.type !== defaultIdType);
                         if (relationMeta.required === false) {
                             requiredString = '?';
@@ -244,7 +244,7 @@ datasource db {
                 if (!trackMeta.required) {
                     requiredString = '?';
                 }
-                if (trackMeta.isArray || trackMeta.type.name === 'Array') {
+                if (trackMeta.isArray || trackMeta.type?.name === 'Array') {
                     requiredString = '';
                 }
                 if (model._SUPER_TAGS.some(tag => tag.tagType === 'id' && tag.fields.includes(key))) {

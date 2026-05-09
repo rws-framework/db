@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
 function IdType(type, opts = null, tags = []) {
-    const metaOpts = { type, dbOptions: opts && opts.dbOptions ? opts.dbOptions : null };
+    const metaOpts = { type: type ?? null, dbOptions: opts && opts.dbOptions ? opts.dbOptions : null };
     if (opts && opts.dbOptions) {
         metaOpts.dbOptions = opts.dbOptions;
     }

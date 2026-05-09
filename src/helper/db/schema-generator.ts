@@ -178,7 +178,7 @@ datasource db {
                             requiredString = '';
                         }
 
-                        const defaultIdType = DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
+                        const defaultIdType = DbUtils.getDefaultPrismaType(dbType, relatedFieldMeta.annotationType !== 'TrackType' && relatedFieldMeta.metadata.type?.name === 'String' && relatedToField === 'id' && dbType !== 'mongodb');
                         let relatedFieldType = TypeConverter.toConfigCase(relatedFieldMeta.metadata, dbType, true, relatedFieldMeta.annotationType !== 'TrackType' && relatedToField === 'id' && relatedFieldMeta.metadata.type !== defaultIdType);
 
                         if (relationMeta.required === false) {
@@ -305,7 +305,7 @@ datasource db {
                     requiredString = '?';
                 }
 
-                if (trackMeta.isArray || trackMeta.type.name === 'Array') {
+                if (trackMeta.isArray || trackMeta.type?.name === 'Array') {
                     requiredString = '';
                 }
 

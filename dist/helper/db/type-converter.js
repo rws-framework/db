@@ -11,6 +11,15 @@ class TypeConverter {
      */
     static toConfigCase(modelType, dbType = 'mongodb', isId = false, isIdOverride = false) {
         const type = modelType.type;
+        // When no type is specified (e.g. @IdType() with no args), derive from db type
+        if (type === undefined || type === null) {
+            if (isId) {
+                const useUuid = !!modelType.dbOptions?.mysql?.useUuid ||
+                    !!modelType.dbOptions?.postgres?.useUuid;
+                return utils_1.DbUtils.getDefaultPrismaType(dbType, useUuid);
+            }
+            return 'String';
+        }
         let input = type.name;
         // Handle basic types
         if (input == 'Number') {

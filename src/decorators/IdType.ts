@@ -3,11 +3,11 @@ import { ITrackerOpts } from '../models/interfaces/ITrackerOpts';
 import { IIdTypeOpts } from '../models/interfaces/IIdTypeOpts';
   
 export interface IIdMetaOpts extends IIdTypeOpts {
-    type: any,
+    type: any | null,
 }
   
-function IdType(type: any, opts: IIdTypeOpts | null = null, tags: string[] = []) {   
-    const metaOpts: IIdMetaOpts = { type, dbOptions: opts && opts.dbOptions ? opts.dbOptions : null };
+function IdType(type?: any, opts: IIdTypeOpts | null = null, tags: string[] = []) {   
+    const metaOpts: IIdMetaOpts = { type: type ?? null, dbOptions: opts && opts.dbOptions ? opts.dbOptions : null };
     
     if(opts && opts.dbOptions){
         metaOpts.dbOptions = opts.dbOptions;

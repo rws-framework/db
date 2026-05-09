@@ -18,7 +18,7 @@ class RWSModel<T> implements IModel {
     static services: IRWSModelServices = {};
     
     [key: string]: any;
-    @IdType(String)
+    @IdType()
     id: string | number;
     static _collection: string = null;
     static _RELATIONS = {};

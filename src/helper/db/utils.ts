@@ -142,19 +142,17 @@ export class DbUtils {
             const modelMetadata: IIdMetaOpts = modelMeta[key].metadata;
             const annotationType: string = modelMeta[key].annotationType;
 
-            if (key !== 'id') {
-                if (annotationType == 'IdType') {                                      
-                    if (modelMetadata.dbOptions?.mysql?.useUuid) {
-                        useUuid = true;
-                    }
+            if (annotationType == 'IdType') {                                      
+                if (modelMetadata.dbOptions?.mysql?.useUuid) {
+                    useUuid = true;
+                }
 
-                    if (modelMetadata.dbOptions?.postgres?.useUuid) {
-                        useUuid = true;
-                    }
+                if (modelMetadata.dbOptions?.postgres?.useUuid) {
+                    useUuid = true;
+                }
 
-                    if (modelMetadata.type.name === 'String') {
-                        useUuid = true;
-                    }
+                if (modelMetadata.type && modelMetadata.type.name === 'String') {
+                    useUuid = true;
                 }
             }
         }
@@ -192,7 +190,7 @@ export class DbUtils {
                     : `autoincrement()`;                
 
             case 'sqlite':
-                return 'autoincrement()';
+                return useUuid ? 'uuid()' : 'autoincrement()';
         }
     }
 }

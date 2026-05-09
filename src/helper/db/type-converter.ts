@@ -13,6 +13,17 @@ export class TypeConverter {
      */
     static toConfigCase(modelType: ITrackerMetaOpts | IIdMetaOpts, dbType: IDbConfigParams['db_type'] = 'mongodb', isId: boolean = false, isIdOverride: boolean = false): string {
         const type = modelType.type;
+
+        // When no type is specified (e.g. @IdType() with no args), derive from db type
+        if (type === undefined || type === null) {
+            if (isId) {
+                const useUuid = !!(modelType as IIdMetaOpts).dbOptions?.mysql?.useUuid ||
+                                !!(modelType as IIdMetaOpts).dbOptions?.postgres?.useUuid;
+                return DbUtils.getDefaultPrismaType(dbType, useUuid);
+            }
+            return 'String';
+        }
+
         let input = type.name;                        
 
         // Handle basic types

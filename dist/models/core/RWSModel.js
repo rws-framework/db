@@ -620,6 +620,6 @@ class RWSModel {
 }
 exports.RWSModel = RWSModel;
 __decorate([
-    (0, decorators_1.IdType)(String),
+    (0, decorators_1.IdType)(),
     __metadata("design:type", Object)
 ], RWSModel.prototype, "id", void 0);
