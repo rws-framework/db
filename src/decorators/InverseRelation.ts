@@ -53,30 +53,41 @@ function guessForeignKey(inversionModel: OpModelType<RWSModel<any>>, bindingMode
 
 function InverseRelation(inversionModel: () => OpModelType<RWSModel<any>>, sourceModel: () => OpModelType<RWSModel<any>>, relationOptions: Partial<InverseRelationOpts> = null) {
     return function (target: any, key: string) {
-        const metadataPromise = Promise.resolve().then(async () => {
-            const model = inversionModel();
-            const source = sourceModel();
-            // Only resolve Relation and TrackType metadata (not InverseRelation)
-            // to prevent circular promise deadlocks between models that reference each other
-            const decoratorsData = await ModelUtils.getModelAnnotations(model, { resolveInverseRelations: false });           
+        // Store an async factory lazily — same rationale as Relation.ts.
+        // Do NOT call inversionModel() / sourceModel() eagerly; those factories
+        // may return undefined in Jest globalSetup due to circular-dependency
+        // module loading races with dynamic import().
+        // The result is memoised so subsequent calls share one resolved value.
+        let cachedPromise: Promise<InverseRelationOpts> | null = null;
 
-            const metaOpts: InverseRelationOpts = {
-                ...relationOptions,
-                key,                
-                inversionModel: model,
-                foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : guessForeignKey(model, source, decoratorsData),
-                // Generate a unique relation name if one is not provided
-                relationName: relationOptions && relationOptions.relationName ?
-                    relationOptions.relationName :
-                    null
-            };
+        const asyncFactory = (): Promise<InverseRelationOpts> => {
+            if (cachedPromise) return cachedPromise;
+            cachedPromise = (async () => {
+                const model = inversionModel();
+                const source = sourceModel();
+                // Only resolve Relation and TrackType metadata (not InverseRelation)
+                // to prevent circular promise deadlocks between models that reference each other
+                const decoratorsData = await ModelUtils.getModelAnnotations(model, { resolveInverseRelations: false });           
 
-            return metaOpts;
-        });
+                const metaOpts: InverseRelationOpts = {
+                    ...relationOptions,
+                    key,                
+                    inversionModel: model,
+                    foreignKey: relationOptions && relationOptions.foreignKey ? relationOptions.foreignKey : guessForeignKey(model, source, decoratorsData),
+                    // Generate a unique relation name if one is not provided
+                    relationName: relationOptions && relationOptions.relationName ?
+                        relationOptions.relationName :
+                        null
+                };
 
-        // Store both the promise and the key information
+                return metaOpts;
+            })();
+            return cachedPromise;
+        };
+
+        // Store both the async factory and the key information
         Reflect.defineMetadata(`InverseRelation:${key}`, {
-            promise: metadataPromise,
+            asyncFactory,
             key
         }, target);
     };

@@ -14,7 +14,7 @@ const type_converter_1 = require("./type-converter");
 const relation_manager_1 = require("./relation-manager");
 const child_process_1 = require("child_process");
 const _EXECUTE_PRISMA_CMD = true;
-const _REMOVE_SCHEMA_FILE = true;
+const _REMOVE_SCHEMA_FILE = process.env.RWS_DB_KEEP_TMP !== '1';
 /**
  * Handles Prisma schema generation
  */
@@ -62,7 +62,12 @@ datasource db {
             const isIdTyped = modelMetadatas[someModelMetaKey].annotationType === 'IdType';
             if (isIdTyped) {
                 hasIdType = true;
-                idFieldName = someModelMetaKey;
+                // Prefer non-'id' IdType fields (custom id fields) over the base class id.
+                // This prevents the base RWSModel @IdType() on 'id' from overwriting a
+                // custom @IdType(String) on another field when _NO_ID is true.
+                if (!idFieldName || someModelMetaKey !== 'id') {
+                    idFieldName = someModelMetaKey;
+                }
             }
         }
         let idGenerated = false;

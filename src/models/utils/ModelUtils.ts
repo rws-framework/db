@@ -35,13 +35,55 @@ export class ModelUtils {
             const metadata = Reflect.getMetadata(fullKey, constructor.prototype);
     
             if (metadata) {
-                // If this is a relation metadata with a promise
-                if (metadata.promise && (annotationType === 'Relation' || annotationType === 'InverseRelation')) {
-                    const resolvedMetadata = await metadata.promise;
-                    annotationsData[propertyKey] = {
-                        annotationType,
-                        metadata: resolvedMetadata
-                    };
+                if (annotationType === 'Relation') {
+                    let resolvedMetadata: any;
+
+                    if (metadata.factory) {
+                        // New lazy factory pattern: resolve only now, when all modules are loaded.
+                        const relatedTo = metadata.factory();
+                        if (!relatedTo) {
+                            throw new Error(
+                                `@Relation on "${String((constructor as any).name)}.${propertyKey}": model factory returned undefined. ` +
+                                `Check for unresolved circular dependencies.`
+                            );
+                        }
+                        const opts = metadata.options || {};
+                        resolvedMetadata = {
+                            ...opts,
+                            cascade: opts.cascade ?? null,
+                            relatedTo,
+                            relationField: opts.relationField ?? (relatedTo._collection + '_id'),
+                            key: metadata.key,
+                            relationName: opts.relationName ?? null,
+                        };
+                        if (opts.required && !opts.cascade) {
+                            if (!resolvedMetadata.cascade) {
+                                resolvedMetadata.cascade = {};
+                            }
+                            resolvedMetadata.cascade.onDelete = 'Restrict';
+                        }
+                    } else if (metadata.promise) {
+                        // Legacy promise pattern (backward compat).
+                        resolvedMetadata = await metadata.promise;
+                    }
+
+                    if (resolvedMetadata) {
+                        annotationsData[propertyKey] = { annotationType, metadata: resolvedMetadata };
+                    }
+                } else if (annotationType === 'InverseRelation') {
+                    let resolvedMetadata: any;
+
+                    if (metadata.asyncFactory) {
+                        // New lazy async factory pattern.
+                        resolvedMetadata = await metadata.asyncFactory();
+                    } else if (metadata.promise) {
+                        // Legacy promise pattern (backward compat).
+                        resolvedMetadata = await metadata.promise;
+                    }
+
+                    if (resolvedMetadata) {
+                        annotationsData[propertyKey] = { annotationType, metadata: resolvedMetadata };
+                    }
                 } else {
                     // Handle non-relation metadata as before
                     const key = metadata.key || propertyKey;

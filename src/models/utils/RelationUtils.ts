@@ -15,9 +15,31 @@ export class RelationUtils {
             const metadataKey = `Relation:${key}`;
             const metadata = Reflect.getMetadata(metadataKey, model);                 
             
-            if (metadata && metadata.promise) {
-                const resolvedMetadata = await metadata.promise;
-                if (!relIds[key]) {
+            if (metadata) {
+                let resolvedMetadata: any;
+
+                if (metadata.factory) {
+                    // New lazy factory pattern
+                    const relatedTo = metadata.factory();
+                    const opts = metadata.options || {};
+                    resolvedMetadata = {
+                        ...opts,
+                        key: metadata.key,
+                        relatedTo,
+                        relationField: opts.relationField ?? (relatedTo._collection + '_id'),
+                        cascade: opts.cascade ?? null,
+                        relationName: opts.relationName ?? null,
+                    };
+                    if (opts.required && !opts.cascade) {
+                        if (!resolvedMetadata.cascade) resolvedMetadata.cascade = {};
+                        resolvedMetadata.cascade.onDelete = 'Restrict';
+                    }
+                } else if (metadata.promise) {
+                    // Legacy promise pattern
+                    resolvedMetadata = await metadata.promise;
+                }
+
+                if (resolvedMetadata && !relIds[key]) {
                     relIds[key] = {
                         key: resolvedMetadata.key,
                         required: resolvedMetadata.required,
@@ -44,9 +66,18 @@ export class RelationUtils {
             const metadataKey = `InverseRelation:${key}`;
             const metadata = Reflect.getMetadata(metadataKey, model);                            
     
-            if (metadata && metadata.promise) {
-                const resolvedMetadata = await metadata.promise;
-                if (!relIds[key]) {
+            if (metadata) {
+                let resolvedMetadata: any;
+
+                if (metadata.asyncFactory) {
+                    // New lazy async factory pattern
+                    resolvedMetadata = await metadata.asyncFactory();
+                } else if (metadata.promise) {
+                    // Legacy promise pattern
+                    resolvedMetadata = await metadata.promise;
+                }
+
+                if (resolvedMetadata && !relIds[key]) {
                     relIds[key] = {       
                         key: resolvedMetadata.key,         
                         inversionModel: resolvedMetadata.inversionModel,
