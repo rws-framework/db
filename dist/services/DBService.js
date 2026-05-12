@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DBService = void 0;
 const client_1 = require("@prisma/client");
-const mongodb_1 = require("mongodb");
 const chalk_1 = __importDefault(require("chalk"));
 class DBService {
     configService;
@@ -59,46 +58,6 @@ class DBService {
     }
     reconnect(opts = null) {
         this.connectToDB(opts);
-    }
-    static baseClientConstruct(dbUrl) {
-        const client = new mongodb_1.MongoClient(dbUrl);
-        return client;
-    }
-    async createBaseMongoClient() {
-        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
-        const client = DBService.baseClientConstruct(dbUrl);
-        await client.connect();
-        return client;
-    }
-    async createBaseMongoClientDB() {
-        const dbName = this.opts?.dbName || this.configService.get('db_name');
-        const client = await this.createBaseMongoClient();
-        return [client, client.db(dbName)];
-    }
-    async cloneDatabase(source, target) {
-        const client = await this.createBaseMongoClient();
-        // Source and target DB
-        const sourceDb = client.db(source);
-        const targetDb = client.db(target);
-        // Get all collections from source DB
-        const collections = await sourceDb.listCollections().toArray();
-        // Loop over all collections and copy them to the target DB
-        for (const collection of collections) {
-            const docs = await sourceDb.collection(collection.name).find({}).toArray();
-            await targetDb.collection(collection.name).insertMany(docs);
-        }
-        await client.close();
-    }
-    async watchCollection(collectionName, preRun) {
-        const [client, db] = await this.createBaseMongoClientDB();
-        const collection = db.collection(collectionName);
-        const changeStream = collection.watch();
-        return new Promise((resolve) => {
-            changeStream.on('change', (change) => {
-                resolve(change);
-            });
-            preRun();
-        });
     }
     async insert(data, collection, isTimeSeries = false) {
         let result = data;

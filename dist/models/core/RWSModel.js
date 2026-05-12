@@ -303,11 +303,6 @@ class RWSModel {
         }
         return sanitizedData;
     }
-    static async watchCollection(preRun) {
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        return await this.services.dbService.watchCollection(collection, preRun);
-    }
     static async findOneBy(findParams) {
         return await FindUtils_1.FindUtils.findOneBy(this, findParams);
     }

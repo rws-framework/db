@@ -1,5 +1,4 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { Db, MongoClient } from 'mongodb';
 import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IPaginationParams, OrderByType } from '../types/FindParams';
@@ -18,11 +17,6 @@ declare class DBService {
     addExtension(extension: Parameters<typeof Prisma.defineExtension>[0]): void;
     private connectToDB;
     reconnect(opts?: IDBClientCreate): void;
-    static baseClientConstruct(dbUrl: string): MongoClient;
-    createBaseMongoClient(): Promise<MongoClient>;
-    createBaseMongoClientDB(): Promise<[MongoClient, Db]>;
-    cloneDatabase(source: string, target: string): Promise<void>;
-    watchCollection(collectionName: string, preRun: () => void): Promise<any>;
     insert(data: any, collection: string, isTimeSeries?: boolean): Promise<any>;
     update(data: any, collection: string, pk: string | string[]): Promise<IModel>;
     findOneBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, prismaOptions?: any): Promise<IModel | null>;

@@ -62,7 +62,6 @@ declare class RWSModel<T> implements IModel {
     isDbVariable(variable: string): Promise<boolean>;
     static checkDbVariable(constructor: any, variable: string): Promise<boolean>;
     sanitizeDBData(data: any): any;
-    static watchCollection<T extends RWSModel<T>>(this: OpModelType<T>, preRun: () => void): Promise<any>;
     static findOneBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T | null>;
     static find<T extends RWSModel<T>>(this: OpModelType<T>, id: string | number, findParams?: Omit<FindByType, 'conditions'>): Promise<T | null>;
     static findBy<T extends RWSModel<T>>(this: OpModelType<T>, findParams?: FindByType): Promise<T[]>;
@@ -74,7 +73,7 @@ declare class RWSModel<T> implements IModel {
     private checkRelDisabled;
     static setServices(services: IRWSModelServices): void;
     getDb(): DBService;
-    static count(where?: {
+    static count<T extends RWSModel<T>>(this: OpModelType<T>, where?: {
         [k: string]: any;
     }): Promise<number>;
     /**
