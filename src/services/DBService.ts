@@ -1,6 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { InputJsonObject, JsonObject } from '@prisma/client/runtime/library';
-import { Db, MongoClient } from 'mongodb';
 
 type ExtendedPrismaClient = PrismaClient | ReturnType<PrismaClient['$extends']>;
 import { IModel } from '../models/interfaces/IModel';
@@ -74,61 +73,6 @@ class DBService {
 
     reconnect(opts: IDBClientCreate = null) {
         this.connectToDB(opts);
-    }
-
-    static baseClientConstruct(dbUrl: string): MongoClient {
-        const client = new MongoClient(dbUrl);
-
-        return client;
-    }
-
-    public async createBaseMongoClient(): Promise<MongoClient> {
-        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
-        const client = DBService.baseClientConstruct(dbUrl);
-
-        await client.connect();
-
-        return client;
-
-    }
-
-    public async createBaseMongoClientDB(): Promise<[MongoClient, Db]> {
-        const dbName = this.opts?.dbName || this.configService.get('db_name');
-        const client = await this.createBaseMongoClient();
-        return [client, client.db(dbName)];
-    }
-
-    public async cloneDatabase(source: string, target: string): Promise<void> {
-        const client = await this.createBaseMongoClient();
-
-        // Source and target DB
-        const sourceDb = client.db(source);
-        const targetDb = client.db(target);
-
-        // Get all collections from source DB
-        const collections = await sourceDb.listCollections().toArray();
-
-        // Loop over all collections and copy them to the target DB
-        for (const collection of collections) {
-            const docs = await sourceDb.collection(collection.name).find({}).toArray();
-            await targetDb.collection(collection.name).insertMany(docs);
-        }
-
-        await client.close();
-    }
-
-    async watchCollection(collectionName: string, preRun: () => void): Promise<any> {
-        const [client, db] = await this.createBaseMongoClientDB();
-        const collection = db.collection(collectionName);
-
-        const changeStream = collection.watch();
-        return new Promise((resolve) => {
-            changeStream.on('change', (change) => {
-                resolve(change);
-            });
-
-            preRun();
-        });
     }
 
     async insert(data: any, collection: string, isTimeSeries: boolean = false) {

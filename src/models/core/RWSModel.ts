@@ -385,16 +385,7 @@ class RWSModel<T> implements IModel {
         }
 
         return sanitizedData;
-    }
-
-    public static async watchCollection<T extends RWSModel<T>>(
-        this: OpModelType<T>, 
-        preRun: () => void
-    ){
-        const collection = Reflect.get(this, '_collection');
-        this.checkForInclusionWithThrow(this.name);
-        return await this.services.dbService.watchCollection(collection, preRun);
-    }
+    }  
 
     public static async findOneBy<T extends RWSModel<T>>(
         this: OpModelType<T>,
@@ -467,8 +458,8 @@ class RWSModel<T> implements IModel {
         return this.services.dbService;
     }
 
-    public static async count(where: {[k: string]: any} = {}): Promise<number>{        
-        return await this.services.dbService.count(this as OpModelType<any>, where);
+    public static async count<T extends RWSModel<T>>(this: OpModelType<T>, where: {[k: string]: any} = {}): Promise<number>{        
+        return await this.services.dbService.count(this as OpModelType<T>, where);
     }
 
     /**
