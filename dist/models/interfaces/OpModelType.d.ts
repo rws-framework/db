@@ -31,7 +31,6 @@ export interface OpModelType<T> {
     getCollection(): string | null;
     getDb(): DBService;
     setServices(services: IRWSModelServices): void;
-    watchCollection<T extends RWSModel<T>>(this: OpModelType<T>, preRun: () => void): Promise<any>;
     count(where?: {
         [k: string]: any;
     }): Promise<number>;
