@@ -12,7 +12,7 @@
       "resolveJsonModule": true,
       "strictNullChecks": false,
       "allowSyntheticDefaultImports": true,
-      "ignoreDeprecations": "5.0",
+      "ignoreDeprecations": "6.0",
       "sourceMap": false,      
       "declaration": true,   
       "rootDir": "./src",
