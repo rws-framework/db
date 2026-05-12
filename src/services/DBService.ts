@@ -1,8 +1,8 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { Collection, Db, MongoClient } from 'mongodb';
+import { InputJsonObject, JsonObject } from '@prisma/client/runtime/library';
+import { Db, MongoClient } from 'mongodb';
 
 type ExtendedPrismaClient = PrismaClient | ReturnType<PrismaClient['$extends']>;
-import { ITimeSeries } from '../types/ITimeSeries';
 import { IModel } from '../models/interfaces/IModel';
 import chalk from 'chalk';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
@@ -24,8 +24,9 @@ class DBService {
     constructor(private configService: IDbConfigHandler) { }
 
     addExtension(extension: Parameters<typeof Prisma.defineExtension>[0]): void {
-        if(this.extensions.some(ext => ext.name === extension.name)) {
-            console.warn(chalk.yellow(`Extension with name ${extension.name} already exists. Skipping.`));
+        const extName = (extension as { name?: string }).name;
+        if(extName && this.extensions.some(ext => (ext as { name?: string }).name === extName)) {
+            console.warn(chalk.yellow(`Extension with name ${extName} already exists. Skipping.`));
             return;
         }
         this.extensions.push(Prisma.defineExtension(extension));
@@ -52,11 +53,7 @@ class DBService {
 
         try {
             let theClient: ExtendedPrismaClient = new PrismaClient({
-                datasources: {
-                    db: {
-                        url: this.opts.dbUrl
-                    },
-                },
+                datasourceUrl: this.opts.dbUrl,
             });
 
             for (const ext of this.extensions) {
@@ -140,12 +137,14 @@ class DBService {
         // Insert time-series data outside of the transaction
 
         if (isTimeSeries) {
-            const [client, db] = await this.createBaseMongoClientDB();
-            const collectionHandler = db.collection(collection);
+            const prisma = this.getPrismaClient();
+            const insertResult = await (prisma as unknown as { $runCommandRaw(cmd: InputJsonObject): Promise<JsonObject> }).$runCommandRaw({
+                insert: collection,
+                documents: [data]
+            });
 
-            const insert = await collectionHandler.insertOne(data);
-
-            result = await this.findOneBy(collection, { id: insert.insertedId.toString() });
+            const insertedId = (insertResult as { insertedIds?: Record<string, unknown> }).insertedIds?.[0]?.toString() ?? data.id;
+            result = await this.findOneBy(collection, { id: insertedId });
             return result;
         }
 
@@ -269,44 +268,34 @@ class DBService {
     }
 
     async collectionExists(collection_name: string): Promise<boolean> {
-        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
-        const client = new MongoClient(dbUrl);
-
         try {
-            await client.connect();
+            const prisma = this.getPrismaClient();
+            const result = await (prisma as unknown as { $runCommandRaw(cmd: InputJsonObject): Promise<JsonObject> }).$runCommandRaw({
+                listCollections: 1,
+                filter: { name: collection_name },
+                nameOnly: true
+            });
 
-            const db = client.db(this.configService.get('db_name'));
-
-            const collections = await db.listCollections().toArray();
-            const existingCollectionNames = collections.map((collection) => collection.name);
-
-            return existingCollectionNames.includes(collection_name);
+            const batch = (result as { cursor?: { firstBatch?: unknown[] } }).cursor?.firstBatch;
+            return (batch?.length ?? 0) > 0;
         } catch (error) {
-            console.error('Error connecting to MongoDB:', error);
-
+            console.error('Error checking MongoDB collection:', error);
             throw error;
         }
     }
 
-    async createTimeSeriesCollection(collection_name: string): Promise<Collection<ITimeSeries>> {
+    async createTimeSeriesCollection(collection_name: string): Promise<void> {
         try {
-            const [client, db] = await this.createBaseMongoClientDB();
-
-            // Create a time series collection
-            const options = {
+            const prisma = this.getPrismaClient();
+            await (prisma as unknown as { $runCommandRaw(cmd: InputJsonObject): Promise<JsonObject> }).$runCommandRaw({
+                create: collection_name,
                 timeseries: {
-                    timeField: 'timestamp', // Replace with your timestamp field
-                    metaField: 'params' // Replace with your metadata field
+                    timeField: 'timestamp',
+                    metaField: 'params'
                 }
-            };
-
-            await db.createCollection(collection_name, options); // Replace with your collection name
-
-            return db.collection(collection_name);
-
+            });
         } catch (error) {
-            console.error('Error connecting to MongoDB:', error);
-
+            console.error('Error creating MongoDB time series collection:', error);
             throw error;
         }
     }

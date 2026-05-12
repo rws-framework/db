@@ -1,6 +1,5 @@
 import { Prisma, PrismaClient } from '@prisma/client';
-import { Collection, Db, MongoClient } from 'mongodb';
-import { ITimeSeries } from '../types/ITimeSeries';
+import { Db, MongoClient } from 'mongodb';
 import { IModel } from '../models/interfaces/IModel';
 import { IDbConfigHandler } from '../types/DbConfigHandler';
 import { IPaginationParams, OrderByType } from '../types/FindParams';
@@ -30,7 +29,7 @@ declare class DBService {
     delete(collection: string, conditions: any): Promise<void>;
     findBy(collection: string, conditions: any, fields?: string[] | null, ordering?: OrderByType, pagination?: IPaginationParams, prismaOptions?: any): Promise<IModel[]>;
     collectionExists(collection_name: string): Promise<boolean>;
-    createTimeSeriesCollection(collection_name: string): Promise<Collection<ITimeSeries>>;
+    createTimeSeriesCollection(collection_name: string): Promise<void>;
     private getCollectionHandler;
     private convertOrderingToPrismaFormat;
     private setOpts;

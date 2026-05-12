@@ -2,7 +2,7 @@ import { RelOneMetaType, RelManyMetaType } from '../types/RelationTypes';
 import { IRWSModel } from '../../types/IRWSModel';
 import { OpModelType, RWSModel } from '../_model';
 import { ModelUtils } from './ModelUtils';
-import { IRelationOpts } from 'src/decorators/Relation';
+import { IRelationOpts } from '../../decorators/Relation';
 
 export class RelationUtils {
     static async getRelationOneMeta(model: RWSModel<any>, classFields: string[]): Promise<RelOneMetaType<IRWSModel>> {

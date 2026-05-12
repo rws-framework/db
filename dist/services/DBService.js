@@ -17,8 +17,9 @@ class DBService {
         this.configService = configService;
     }
     addExtension(extension) {
-        if (this.extensions.some(ext => ext.name === extension.name)) {
-            console.warn(chalk_1.default.yellow(`Extension with name ${extension.name} already exists. Skipping.`));
+        const extName = extension.name;
+        if (extName && this.extensions.some(ext => ext.name === extName)) {
+            console.warn(chalk_1.default.yellow(`Extension with name ${extName} already exists. Skipping.`));
             return;
         }
         this.extensions.push(client_1.Prisma.defineExtension(extension));
@@ -42,11 +43,7 @@ class DBService {
         }
         try {
             let theClient = new client_1.PrismaClient({
-                datasources: {
-                    db: {
-                        url: this.opts.dbUrl
-                    },
-                },
+                datasourceUrl: this.opts.dbUrl,
             });
             for (const ext of this.extensions) {
                 theClient = theClient.$extends(ext);
@@ -107,10 +104,13 @@ class DBService {
         let result = data;
         // Insert time-series data outside of the transaction
         if (isTimeSeries) {
-            const [client, db] = await this.createBaseMongoClientDB();
-            const collectionHandler = db.collection(collection);
-            const insert = await collectionHandler.insertOne(data);
-            result = await this.findOneBy(collection, { id: insert.insertedId.toString() });
+            const prisma = this.getPrismaClient();
+            const insertResult = await prisma.$runCommandRaw({
+                insert: collection,
+                documents: [data]
+            });
+            const insertedId = insertResult.insertedIds?.[0]?.toString() ?? data.id;
+            result = await this.findOneBy(collection, { id: insertedId });
             return result;
         }
         const prismaCollection = this.getCollectionHandler(collection);
@@ -204,35 +204,34 @@ class DBService {
         return retData;
     }
     async collectionExists(collection_name) {
-        const dbUrl = this.opts?.dbUrl || this.configService.get('db_url');
-        const client = new mongodb_1.MongoClient(dbUrl);
         try {
-            await client.connect();
-            const db = client.db(this.configService.get('db_name'));
-            const collections = await db.listCollections().toArray();
-            const existingCollectionNames = collections.map((collection) => collection.name);
-            return existingCollectionNames.includes(collection_name);
+            const prisma = this.getPrismaClient();
+            const result = await prisma.$runCommandRaw({
+                listCollections: 1,
+                filter: { name: collection_name },
+                nameOnly: true
+            });
+            const batch = result.cursor?.firstBatch;
+            return (batch?.length ?? 0) > 0;
         }
         catch (error) {
-            console.error('Error connecting to MongoDB:', error);
+            console.error('Error checking MongoDB collection:', error);
             throw error;
         }
     }
     async createTimeSeriesCollection(collection_name) {
         try {
-            const [client, db] = await this.createBaseMongoClientDB();
-            // Create a time series collection
-            const options = {
+            const prisma = this.getPrismaClient();
+            await prisma.$runCommandRaw({
+                create: collection_name,
                 timeseries: {
-                    timeField: 'timestamp', // Replace with your timestamp field
-                    metaField: 'params' // Replace with your metadata field
+                    timeField: 'timestamp',
+                    metaField: 'params'
                 }
-            };
-            await db.createCollection(collection_name, options); // Replace with your collection name
-            return db.collection(collection_name);
+            });
         }
         catch (error) {
-            console.error('Error connecting to MongoDB:', error);
+            console.error('Error creating MongoDB time series collection:', error);
             throw error;
         }
     }

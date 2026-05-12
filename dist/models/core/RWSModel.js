@@ -253,7 +253,7 @@ class RWSModel {
         }
         else {
             await this.preCreate();
-            const isTimeSeries = false; //this instanceof timeSeriesModel;
+            const isTimeSeries = TimeSeriesUtils_1.TimeSeriesUtils.checkTimeSeries(this.constructor);
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);
             await this._asyncFill(updatedModelData);
             await this.postCreate();

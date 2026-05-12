@@ -8,7 +8,6 @@ import { RelationUtils } from '../utils/RelationUtils';
 
 import { TimeSeriesUtils } from '../utils/TimeSeriesUtils';
 import { ModelUtils } from '../utils/ModelUtils';
-// import timeSeriesModel from './TimeSeriesModel';      
 import { DBService } from '../../services/DBService';
 import { ISuperTagData } from '../../decorators/RWSCollection';
 import { HydrateUtils } from '../utils/HydrateUtils';
@@ -319,7 +318,7 @@ class RWSModel<T> implements IModel {
         } else {
             await this.preCreate();      
       
-            const isTimeSeries = false;//this instanceof timeSeriesModel;
+            const isTimeSeries = TimeSeriesUtils.checkTimeSeries(this.constructor);
 
             updatedModelData = await this.dbService.insert(data, this.getCollection(), isTimeSeries);      
 

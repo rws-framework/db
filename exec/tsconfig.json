@@ -5,7 +5,7 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "emitDeclarationOnly": false,
-    "target": "ES2018",
+    "target": "ES2022",
     "module": "commonjs",
     "moduleResolution": "node",
     "strict": true,
@@ -17,8 +17,10 @@
     "sourceMap": true,
     "declaration": true, 
     "outDir": "build/vendors",
+    "rootDir": "..",
     "preserveWatchOutput": true,
     "allowJs": true,
+    "types": ["node"],
     "paths": {
       "@V/*": ["./build/vendors/*"]      
     }
@@ -28,6 +30,7 @@
     "../src/*"    
   ],
   "exclude": [  
-    "node_modules"  
+    "node_modules",
+    "../src/empty.js"
   ]
 }
