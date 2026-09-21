@@ -218,6 +218,7 @@ class RWSModel {
                 continue;
             }
             if (!(await this.isDbVariable(key))) {
+                console.warn(`Skipping non-DB variable: ${key}`);
                 continue;
             }
             const passedFieldCondition = this.hasOwnProperty(key) &&

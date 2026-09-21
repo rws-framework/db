@@ -107,11 +107,11 @@ export class ModelUtils {
         }
         
         const dbAnnotations = await ModelUtils.getModelAnnotations(constructor);
-        type AnnotationType = { annotationType: string, key: string };
+        type AnnotationType = { annotationType: string, key: string, metadata: any };        
     
         const dbProperties: string[] = Object.keys(dbAnnotations)
             .map((key: string): AnnotationType => {return {...dbAnnotations[key], key};})
-            .filter((element: AnnotationType) => element.annotationType === 'TrackType' )
+            .filter((element: AnnotationType) => element.annotationType === 'TrackType' || (element.annotationType === 'IdType' && element.metadata.noAuto))
             .map((element: AnnotationType) => element.key);
     
         return dbProperties.includes(variable);

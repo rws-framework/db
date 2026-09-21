@@ -78,6 +78,7 @@ class DBService {
     async insert(data: any, collection: string, isTimeSeries: boolean = false) {
 
         let result: any = data;
+
         // Insert time-series data outside of the transaction
 
         if (isTimeSeries) {

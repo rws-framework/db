@@ -92,7 +92,7 @@ class ModelUtils {
         const dbAnnotations = await ModelUtils.getModelAnnotations(constructor);
         const dbProperties = Object.keys(dbAnnotations)
             .map((key) => { return { ...dbAnnotations[key], key }; })
-            .filter((element) => element.annotationType === 'TrackType')
+            .filter((element) => element.annotationType === 'TrackType' || (element.annotationType === 'IdType' && element.metadata.noAuto))
             .map((element) => element.key);
         return dbProperties.includes(variable);
     }
